@@ -17,8 +17,7 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-Write-Host 'settingsJson:'
-$settingsJson
+
 try {
     $runAlPipelineParams = @{}
 
