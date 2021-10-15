@@ -11,6 +11,13 @@ Set-StrictMode -Version 2.0
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
 
+    function WriteDebugString([string] $str) {
+        $str.ToCharArray() | ForEach-Object {
+            Write-Host -NoNewline "$_ "
+        }
+        Write-Host
+    }
+
     function GetGithubSecret {
         param (
             [string] $secretName
@@ -25,7 +32,7 @@ try {
         if ($gitHubSecrets.PSObject.Properties.Name -eq $secret) {
             $value = $githubSecrets."$secret"
             if ($value) {
-                #MaskValueInLog -value $value
+                MaskValueInLog -value $value
                 Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
                 Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
                 return $value
@@ -82,6 +89,7 @@ try {
             ForEach-Object {
                 if ($($_.authTokenSecret)) {
                     $_.authTokenSecret = GetGithubSecret -secretName $_.authTokenSecret 
+                    WriteDebugString -str $_.authTokenSecret
                 }
             } 
 
