@@ -36,6 +36,7 @@ $outSecrets = [ordered]@{}
 try {
     @($secretsCollection) | ForEach-Object {
         $outSecrets += GetGithubSecret -secretName $_ 
+        $secretsCollection.Remove($_)
     }
 
     if ($updateSettingsWithValues) {
