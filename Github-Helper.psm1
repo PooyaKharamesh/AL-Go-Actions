@@ -13,7 +13,7 @@ function Get-dependencies {
             $dependency = $_
             Write-Host "Getting releases from $($dependency.repo)"
             $repository = ([uri]$dependency.repo).AbsolutePath.Replace(".git", "").TrimStart("/")
-
+            $repository# remove
             if ($dependency.release_status -eq "latestBuild") {
 
                 # TODO it should check the branch and limit to a certain branch
@@ -30,6 +30,7 @@ function Get-dependencies {
                 DownloadArtifact -path $saveToPath -token $dependency.authTokenSecret -artifact $artifact
             }
             else {
+
                 $releases = GetReleases -api_url $api_url -token $token -repository $repository
                 if ($dependency.version -ne "latest") {
                     $releases = $releases | Where-Object { ($_.tag_name -eq $dependency.version) }
@@ -65,7 +66,7 @@ function GetReleases {
         [string] $repository = $ENV:GITHUB_REPOSITORY
     )
 
-    Write-Host "Analyzing releases"
+    Write-Host "Analyzing releases $api_url/repos/$repository/releases"
     Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Uri "$api_url/repos/$repository/releases" | ConvertFrom-Json
 }
 
