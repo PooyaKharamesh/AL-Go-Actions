@@ -36,20 +36,6 @@ try {
         Write-Host "use settings and secrets"
         
         $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
-        
-    
-        
-        Write-Host "appDependencyProbingPaths"
-        $settings.appDependencyProbingPaths
-        if ($settings.appDependencyProbingPaths) {
-            Write-Host "Downloading dependencies ..."
-            Get-dependencies -probingPathsJson $settings.appDependencyProbingPaths -token $token
-        }
-    exit #remove later
-
-
-
-
         $appBuild = $settings.appBuild
         $appRevision = $settings.appRevision
 
@@ -89,11 +75,11 @@ try {
     $installTestApps = $repo.installTestApps
     $doNotRunTests = $repo.doNotRunTests
 
-    if (!($settings.appDependencyProbingPaths)) {
+    if ($settings.appDependencyProbingPaths) {
         Write-Host "Downloading dependencies ..."
         $installApps += Get-dependencies -probingPathsJson $settings.appDependencyProbingPaths -token $token
     }
-
+    
     # Analyze app.json version dependencies before launching pipeline
 
     # Analyze InstallApps and InstallTestApps before launching pipeline
