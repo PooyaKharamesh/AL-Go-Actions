@@ -15,7 +15,6 @@ try {
         param (
             [string] $secretName
         )
-        $outSecret = $null
         $secretSplit = $secretName.Split('=')
         $envVar = $secretSplit[0]
         $secret = $envVar
