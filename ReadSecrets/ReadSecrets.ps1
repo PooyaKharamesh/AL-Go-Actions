@@ -176,7 +176,9 @@ try {
 
     $outSecretsJson = $outSecrets | ConvertTo-Json -Compress
     Add-Content -Path $env:GITHUB_ENV -Value "RepoSecrets=$outSecretsJson"
-    Add-Content -Path $env:GITHUB_ENV -Value "Settings=$outSettings"
+
+    $outSettingsJson = $outSettings | ConvertTo-Json -Compress
+    Add-Content -Path $env:GITHUB_ENV -Value "Settings=$OutSettingsJson"
 }
 catch {
     OutputError -message $_.Exception.Message
