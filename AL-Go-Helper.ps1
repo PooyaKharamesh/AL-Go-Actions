@@ -1,3 +1,5 @@
+Import-Module .\Github-Helper.psm1
+
 Param(
     [switch] $local
 )
@@ -301,7 +303,7 @@ function ReadSettings {
         "testFolders"                            = @()
         "installApps"                            = @()
         "installTestApps"                        = @()
-        "applicationDependency"                  = "17.0.0.0"
+        "applicationDependency"                  = "19.0.0.0"
         "installTestRunner"                      = $false
         "installTestFramework"                   = $false
         "installTestLibraries"                   = $false
@@ -313,6 +315,7 @@ function ReadSettings {
         "memoryLimit"                            = "6G"
         "templateUrl"                            = ""
         "templateBranch"                         = ""
+        "appDependencyProbingPaths"              = @("[{ ""repo"" : ""https://github.com/PooyaKharamesh/MS1.git"", ""version"": ""latest"", ""release_status"": ""release"", ""authTokenSecret"": ""test"", ""projects"" = ""*"" }]")
     }
 
     $RepoSettingsFile, $ALGoSettingsFile, (Join-Path $ALGoFolder "$workflowName.setting.json"), (Join-Path $ALGoFolder "$userName.settings.json") | ForEach-Object {
@@ -335,6 +338,32 @@ function ReadSettings {
 
     $settings | ConvertTo-Json | Out-Host
     $settings
+}
+
+function GetGithubSecret {
+    param (
+        [string] $secretName
+    )
+    
+    $secretSplit = $secretName.Split('=')
+    $envVar = $secretSplit[0]
+    $secret = $envVar
+    if ($secretSplit.Count -gt 1) {
+        $secret = $secretSplit[1]
+    }
+    
+    if ($gitHubSecrets.PSObject.Properties.Name -eq $secret) {
+        $value = $githubSecrets."$secret"
+        if ($value) {
+            MaskValueInLog -value $value
+            Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
+            $outSecret = @{ "$envVar" = $value }
+            Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
+            $secretsCollection.Remove($_)
+        }
+    }
+
+    return $outSecret
 }
 
 function AnalyzeRepo {
@@ -638,94 +667,6 @@ function CommitFromNewFolder {
     }
 }
 
-function GetReleases {
-    Param(
-        [string] $token,
-        [string] $api_url = $ENV:GITHUB_API_URL,
-        [string] $repository = $ENV:GITHUB_REPOSITORY
-    )
-
-    Write-Host "Analyzing releases"
-    $headers = @{ 
-        "Authorization" = "token $token"
-        "Accept"        = "application/json"
-    }
-    Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$api_url/repos/$repository/releases" | ConvertFrom-Json
-}
-
-function DownloadRelease {
-    Param(
-        [string] $token,
-        [string] $projects = "*",
-        [string] $api_url = $ENV:GITHUB_API_URL,
-        [string] $repository = $ENV:GITHUB_REPOSITORY,
-        [string] $path,
-        $release
-    )
-
-    if ($projects -eq "") { $projects = "*" }
-    Write-Host "Downloading release $($release.Name)"
-    $headers = @{ 
-        "Authorization" = "token $token"
-        "Accept"        = "application/octet-stream"
-    }
-    $projects.Split(',') | ForEach-Object {
-        $project = $_
-        Write-Host "project '$project'"
-        $release.assets | % { Write-Host $_.name }
-        
-        $release.assets | Where-Object { $_.name -like "$project-Apps-*.zip" } | ForEach-Object {
-            Write-Host "$api_url/repos/$repository/releases/assets/$($_.id)"
-            $filename = Join-Path $path $_.name
-            Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$api_url/repos/$repository/releases/assets/$($_.id)" -OutFile $filename
-        }
-    }
-}    
-
-function GetArtifacts {
-    Param(
-        [string] $token,
-        [string] $api_url = $ENV:GITHUB_API_URL,
-        [string] $repository = $ENV:GITHUB_REPOSITORY
-    )
-
-    Write-Host "Analyzing artifacts"
-    $headers = @{ 
-        "Authorization" = "token $token"
-        "Accept"        = "application/json"
-    }
-    $artifacts = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$api_url/repos/$repository/actions/artifacts" | ConvertFrom-Json
-    $artifacts.artifacts | Where-Object { $_.name -like "*-Apps-*" }
-}
-
-function GetArtifact {
-    Param(
-        [string] $token,
-        $artifactsUrl
-    )
-    Write-Host "Analyzing artifact ($artifactsUrl)"
-    $headers = @{ 
-        "Authorization" = "token $token"
-        "Accept"        = "application/json"
-    }
-    $artifacts = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $artifactsUrl | ConvertFrom-Json
-    $artifacts.artifacts | Where-Object { $_.name -like "*-Apps-*" }
-}
-
-function DownloadArtifact {
-    Param(
-        [string] $token,
-        [string] $path,
-        $artifact
-    )
-
-    Write-Host "Downloading artifact $($artifact.Name)"
-    $headers = @{ 
-        "Authorization" = "token $token"
-        "Accept"        = "application/vnd.github.v3+json"
-    }
-    Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $artifact.archive_download_url -OutFile (Join-Path $path "$($artifact.Name).zip")
-}    
 function Select-Value {
     Param(
         [Parameter(Mandatory=$false)]
@@ -1167,11 +1108,4 @@ function ConvertTo-HashTable() {
         $object.PSObject.Properties | Foreach { $ht[$_.Name] = $_.Value }
     }
     $ht
-}
-
-function WriteDebugString([string] $str) {
-    $str.ToCharArray() | ForEach-Object {
-        Write-Host -NoNewline "$_ "
-    }
-    Write-Host
 }

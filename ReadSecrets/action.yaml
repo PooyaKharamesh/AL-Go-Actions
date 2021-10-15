@@ -11,10 +11,19 @@ inputs:
   secrets:
     description: Comma separated list of Secrets to get
     required: true
+  updateSettingsWithValues:
+    description: Comma separated list of Secrets to get
+    required: false
+    default: false    
+outputs:
+  Settings:
+    description: Settings in compressed Json format
+    value: ${{steps.readsecrets.outputs.Settings}}
 runs:
   using: composite
   steps:
-    - run: ${{ github.action_path }}/ReadSecrets.ps1 -settingsJson '${{ inputs.settings }}' -keyVaultName '${{ inputs.keyVaultName }}' -secrets '${{ inputs.secrets }}'
+    - run: ${{ github.action_path }}/ReadSecrets.ps1 -settingsJson '${{ inputs.settings }}' -keyVaultName '${{ inputs.keyVaultName }}' -secrets '${{ inputs.secrets }}' -updateSettingsWithValues '${{ inputs.updateSettingsWithValues }}'
+      id: readsecrets
       shell: PowerShell
 branding:
   icon: terminal
