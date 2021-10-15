@@ -174,12 +174,12 @@ try {
     }) -join ', ')"
     }
 
+    $outSettings
     $outSecretsJson = $outSecrets | ConvertTo-Json -Compress
     Add-Content -Path $env:GITHUB_ENV -Value "RepoSecrets=$outSecretsJson"
     Add-Content -Path $env:GITHUB_ENV -Value "Settings=$outSettings"
 }
 catch {
     OutputError -message $_.Exception.Message
-    $_.Exception
     exit
 }
