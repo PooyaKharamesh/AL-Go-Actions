@@ -26,15 +26,14 @@ try {
         if ($gitHubSecrets.PSObject.Properties.Name -eq $secret) {
             $value = $githubSecrets."$secret"
             if ($value) {
-                Write-Host "$value" # remove
                 #MaskValueInLog -value $value
                 Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
-                $outSecret = @{ "$envVar" = $value }
                 Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
+                return $value
             }
         }
 
-        return $outSecret
+        throw "Secret $envVar was not found in GitHub Secrets."
     }
 
     if ($keyVaultName -eq "") {
@@ -86,7 +85,7 @@ try {
                     $_.authTokenSecret = GetGithubSecret -secretName $_.authTokenSecret 
                 }
             } 
-            
+
             $outSettings.appDependencyProbingPaths
         }
     }
