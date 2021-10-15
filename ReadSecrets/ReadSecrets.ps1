@@ -142,4 +142,5 @@ Add-Content -Path $env:GITHUB_ENV -Value "Settings=$OutSettings"
 }
 catch {
     OutputError -message $_.Exception.Message
+    $_.Exception
 }
