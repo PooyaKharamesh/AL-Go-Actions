@@ -11,7 +11,7 @@ Set-StrictMode -Version 2.0
 
 
 try {
-    . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
+    . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1" -local:$true)
 
     function GetGithubSecret {
         param (
@@ -77,6 +77,7 @@ try {
     }
     catch {
         OutputError -message "Error reading from GitHub Secrets. Error was $($_.Exception.Message)"
+        $_.Exception
         exit
     }
 
