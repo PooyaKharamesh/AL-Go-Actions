@@ -60,8 +60,22 @@ try {
 
     try {
         @($secretsCollection) | ForEach-Object {
-            $outSecrets += GetGithubSecret -secretName $_ 
-            $secretsCollection.Remove($_)
+            $secretSplit = $_.Split('=')
+            $envVar = $secretSplit[0]
+            $secret = $envVar
+            if ($secretSplit.Count -gt 1) {
+                $secret = $secretSplit[1]
+            }
+            if ($gitHubSecrets.PSObject.Properties.Name -eq $secret) {
+                $value = $githubSecrets."$secret"
+                if ($value) {
+                    MaskValueInLog -value $value
+                    Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
+                    $outSecrets += @{ "$envVar" = $value }
+                    Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
+                    $secretsCollection.Remove($_)
+                }
+            }
         }
 
         if ($updateSettingsWithValues) {
