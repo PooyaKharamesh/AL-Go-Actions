@@ -79,7 +79,7 @@ try {
         Write-Host "Downloading dependencies ..."
         $installApps += Get-dependencies -probingPathsJson $settings.appDependencyProbingPaths -token $token
     }
-
+exit #remove later
     # Analyze app.json version dependencies before launching pipeline
 
     # Analyze InstallApps and InstallTestApps before launching pipeline
