@@ -43,7 +43,7 @@ try {
         $settings.appDependencyProbingPaths
         if ($settings.appDependencyProbingPaths) {
             Write-Host "Downloading dependencies ..."
-            $installApps += Get-dependencies -probingPathsJson $settings.appDependencyProbingPaths -token $token
+            Get-dependencies -probingPathsJson $settings.appDependencyProbingPaths -token $token
         }
     exit #remove later
 
