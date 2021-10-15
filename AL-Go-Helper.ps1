@@ -1,8 +1,8 @@
-Import-Module .\Github-Helper.psm1
-
 Param(
     [switch] $local
 )
+
+Import-Module (Join-Path $PSScriptRoot '.\Github-Helper.psm1')
 
 $ErrorActionPreference = "stop"
 $ALGoFolder = ".AL-Go\"
