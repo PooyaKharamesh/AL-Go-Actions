@@ -110,7 +110,7 @@ function DownloadRelease {
         $release.assets | Where-Object { $_.name -like "$project-Apps-*.zip" } | ForEach-Object {
             Write-Host "$api_url/repos/$repository/releases/assets/$($_.id)"
             $filename = Join-Path $path $_.name
-            Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $_.browser_download_url -OutFile $filename 
+            Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$api_url/repos/$repository/releases/assets/$($_.id)" -OutFile $filename 
             return $filename
         }
     }
