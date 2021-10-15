@@ -174,6 +174,7 @@ try {
     }) -join ', ')"
     }
 
+    Write-Host 'out settings :'
     $outSettings
     $outSecretsJson = $outSecrets | ConvertTo-Json -Compress
     Add-Content -Path $env:GITHUB_ENV -Value "RepoSecrets=$outSecretsJson"
