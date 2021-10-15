@@ -74,9 +74,7 @@ try {
         }
     }
     catch {
-        OutputError -message "Error reading from GitHub Secrets. Error was $($_.Exception.Message)"
-        $_.Exception
-        exit
+        throw $_
     }
 
     if ($secretsCollection) {
@@ -169,4 +167,5 @@ try {
 catch {
     OutputError -message $_.Exception.Message
     $_.Exception
+    exit
 }
