@@ -1,6 +1,5 @@
 function Get-dependencies {
     Param(
-        [string] $token,
         $probingPathsJson,
         [string] $api_url = $ENV:GITHUB_API_URL,
         [string] $saveToPath = (Join-Path $ENV:GITHUB_WORKSPACE "dependencies")
@@ -21,7 +20,7 @@ function Get-dependencies {
             if ($dependency.release_status -eq "latestBuild") {
 
                 # TODO it should check the branch and limit to a certain branch
-                $artifacts = GetArtifacts -token $token -api_url $api_url -repository $repository 
+                $artifacts = GetArtifacts -token $dependency.authTokenSecret -api_url $api_url -repository $repository 
                 if ($dependency.version -ne "latest") {
                     $artifacts = $artifacts | Where-Object { ($_.tag_name -eq $dependency.version) }
                 }    
@@ -35,7 +34,7 @@ function Get-dependencies {
             }
             else {
 
-                $releases = GetReleases -api_url $api_url -token $token -repository $repository
+                $releases = GetReleases -api_url $api_url -token $dependency.authTokenSecret -repository $repository
                 if ($dependency.version -ne "latest") {
                     $releases = $releases | Where-Object { ($_.tag_name -eq $dependency.version) }
                 }

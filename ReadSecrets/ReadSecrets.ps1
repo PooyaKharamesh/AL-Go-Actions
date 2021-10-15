@@ -10,14 +10,6 @@ Set-StrictMode -Version 2.0
 
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
-
-    function WriteDebugString([string] $str) {
-        $str.ToCharArray() | ForEach-Object {
-            Write-Host -NoNewline "$_ "
-        }
-        Write-Host
-    }
-
     function GetGithubSecret {
         param (
             [string] $secretName
@@ -89,7 +81,6 @@ try {
             ForEach-Object {
                 if ($($_.authTokenSecret)) {
                     $_.authTokenSecret = GetGithubSecret -secretName $_.authTokenSecret 
-                    WriteDebugString -str $_.authTokenSecret
                 }
             } 
 
