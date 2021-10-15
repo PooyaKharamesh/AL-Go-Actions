@@ -340,30 +340,7 @@ function ReadSettings {
     $settings
 }
 
-function GetGithubSecret {
-    param (
-        [string] $secretName
-    )
-    $outSecret = $null
-    $secretSplit = $secretName.Split('=')
-    $envVar = $secretSplit[0]
-    $secret = $envVar
-    if ($secretSplit.Count -gt 1) {
-        $secret = $secretSplit[1]
-    }
-    
-    if ($gitHubSecrets.PSObject.Properties.Name -eq $secret) {
-        $value = $githubSecrets."$secret"
-        if ($value) {
-            MaskValueInLog -value $value
-            Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
-            $outSecret = @{ "$envVar" = $value }
-            Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
-        }
-    }
 
-    return $outSecret
-}
 
 function AnalyzeRepo {
     Param(
