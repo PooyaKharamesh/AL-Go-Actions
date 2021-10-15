@@ -5,8 +5,8 @@ function Get-dependencies {
         [string] $api_url = $ENV:GITHUB_API_URL,
         [string] $saveToPath = (Join-Path $ENV:GITHUB_WORKSPACE "dependencies")
     )
-    
-    if (!Test-Path $saveToPath) {
+
+    if (!(Test-Path $saveToPath)) {
         New-Item $saveToPath -ItemType Directory | Out-Null
     }
 
