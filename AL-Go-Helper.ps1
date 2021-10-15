@@ -340,8 +340,6 @@ function ReadSettings {
     $settings
 }
 
-
-
 function AnalyzeRepo {
     Param(
         [hashTable] $settings,
