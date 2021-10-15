@@ -17,7 +17,8 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-
+Write-Host 'settings:'
+$settings
 try {
     $runAlPipelineParams = @{}
 
@@ -36,8 +37,8 @@ try {
         Write-Host "use settings and secrets"
         
         $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
-        $appBuild = $settings.AppBuild
-        $appRevision = $settings.AppRevision
+        $appBuild = $settings.appBuild
+        $appRevision = $settings.appRevision
 
         $secrets = $secretsJson | ConvertFrom-Json | ConvertTo-HashTable
         'licenseFileUrl','insiderSasToken','CodeSignCertificateUrl','CodeSignCertificatePw','KeyVaultCertificateUrl','KeyVaultCertificatePw','KeyVaultClientId' | ForEach-Object {
