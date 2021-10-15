@@ -39,7 +39,7 @@ try {
     if ($keyVaultName -eq "") {
         # use SettingsJson
         $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
-        $OutSettings = $settings
+        $outSettings = $settings
         $keyVaultName = $settings.KeyVaultName
         [System.Collections.ArrayList]$secretsCollection = @()
         $secrets.Split(',') | ForEach-Object {
@@ -79,7 +79,7 @@ try {
         }
 
         if ($updateSettingsWithValues) {
-            $OutSettings.appDependencyProbingPaths | 
+            $outSettings.appDependencyProbingPaths | 
             ForEach-Object {
                 if ($($_.authTokenSecret)) {
                     $_.authTokenSecret = GetGithubSecret -secretName $_.authTokenSecret 
@@ -175,8 +175,8 @@ try {
     }
 
     $outSecretsJson = $outSecrets | ConvertTo-Json -Compress
-    Add-Content -Path $env:GITHUB_ENV -Value "RepoSecrets=$OutSecretsJson"
-    Add-Content -Path $env:GITHUB_ENV -Value "Settings=$OutSettings"
+    Add-Content -Path $env:GITHUB_ENV -Value "RepoSecrets=$outSecretsJson"
+    Add-Content -Path $env:GITHUB_ENV -Value "Settings=$outSettings"
 }
 catch {
     OutputError -message $_.Exception.Message
