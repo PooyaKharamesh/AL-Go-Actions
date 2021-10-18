@@ -40,7 +40,7 @@ try {
             }
         }
 
-        throw "Secret $envVar was not found in GitHub Secrets."
+        return $null
     }
 
     function Get-AzKeyVaultCredentials {
