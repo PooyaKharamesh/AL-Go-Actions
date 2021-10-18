@@ -48,8 +48,8 @@ function InstallKeyVaultModuleIfNeeded {
 
     if (-not (Get-InstalledModule -Name 'Az.KeyVault' -erroraction 'silentlycontinue')) {
         Write-Host "Installing and importing Az.KeyVault." 
-        Install-Module'Az.KeyVault' -Force
-        Import-Module 'Az.KeyVault' -DisableNameChecking -WarningAction SilentlyContinue | Out-Null
+        Install-Module 'Az.KeyVault' -Force
+        Import-Module  'Az.KeyVault' -DisableNameChecking -WarningAction SilentlyContinue | Out-Null
     }
 }
 
