@@ -17,6 +17,13 @@ try {
         $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
         $outSettings = $settings
         $keyVaultName = $settings.KeyVaultName
+        if ([string]::IsNullOrEmpty($keyVaultName)) {
+            $credentialsJson = Get-AzKeyVaultCredentials
+            if ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName") {
+                $keyVaultName = $credentialsJson.KeyVaultName
+            }
+        }
+
         [System.Collections.ArrayList]$secretsCollection = @()
         $secrets.Split(',') | ForEach-Object {
             $secret = $_
@@ -40,7 +47,7 @@ try {
         }
 
         if ($secret) {
-            $value = GetSecret -secret $secret
+            $value = GetSecret -secret $secret -keyVaultName $keyVaultName
             if ($value) {
                 MaskValueInLog -value $value
                 Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"

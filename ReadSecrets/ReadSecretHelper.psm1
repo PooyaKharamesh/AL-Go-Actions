@@ -80,7 +80,8 @@ function ConnectAzureKeyVaultIfNeeded {
 
 function GetKeyVaultSecret {
     param (
-        [string] $secretName
+        [string] $secretName,
+        [string] $keyVaultName
     )
 
     if (-not $script:IsAzKeyvaultSet) {
@@ -92,19 +93,10 @@ function GetKeyVaultSecret {
         InstallKeyVaultModuleIfNeeded
             
         $credentialsJson = Get-AzKeyVaultCredentials
-        $clientId = $credentialsJson.clientId
-        $clientSecret = $credentialsJson.clientSecret
-        $subscriptionId = $credentialsJson.subscriptionId
-        $tenantId = $credentialsJson.tenantId
-            
-        if ($script:keyVaultName -eq "" -and ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName")) {
-            $script:keyVaultName = $credentialsJson.KeyVaultName
-        }
-
-        ConnectAzureKeyVaultIfNeeded -subscriptionId $subscriptionId -tenantId $tenantId -clientId $clientId -clientSecret $clientSecret
+        ConnectAzureKeyVaultIfNeeded -subscriptionId $credentialsJson.subscriptionId -tenantId $credentialsJson.tenantId -clientId $credentialsJson.clientId -clientSecret $credentialsJson.clientSecret
     }
 
-    $keyVaultSecret = Get-AzKeyVaultSecret -VaultName $script:keyVaultName -Name $secret 
+    $keyVaultSecret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secret 
     if ($keyVaultSecret) {
         $value = [Runtime.InteropServices.Marshal]::PtrToStringBSTR(([Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyVaultSecret.SecretValue)))
         MaskValueInLog -value $value
@@ -117,7 +109,8 @@ function GetKeyVaultSecret {
 
 function GetSecret {
     param (
-        $secret
+        [script] $secret,
+        [string] $keyVaultName
     )
 
     Write-Host "Try get the secret($secret) from the github environment"
@@ -128,7 +121,7 @@ function GetSecret {
     }
 
     Write-Host "Try get the secret($secret) from Key Vault"
-    $value = GetKeyVaultSecret -secretName $secret
+    $value = GetKeyVaultSecret -secretName $secret -keyVaultName $keyVaultName
     if ($value) {
         Write-Host "Secret($secret) was retrieved from the Key Vault."
         return $value
