@@ -143,6 +143,9 @@ try {
 
         throw "Could not find secret $secret"
     }
+    
+    $IsAzKeyvaultSet = IsAzKeyVaultCredentialsSet
+    $AzKeyvaultConnectionExists = $false
 
     if ($keyVaultName -eq "") {
         # use SettingsJson
