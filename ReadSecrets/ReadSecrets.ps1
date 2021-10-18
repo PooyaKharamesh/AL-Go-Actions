@@ -86,6 +86,7 @@ try {
             Connect-AzAccount -ServicePrincipal -Tenant $tenantId -Credential $credential | Out-Null
             Set-AzContext -Subscription $subscriptionId -Tenant $tenantId | Out-Null
             $AzKeyvaultConnectionExists = $true
+            Write-Host "Successfuly connected to Azure Key Vault."
         }
         catch {
             throw "Error trying to authenticate to Azure using Az. Error was $($_.Exception.Message)"
@@ -94,7 +95,7 @@ try {
 
     function GetKeyVaultSecret {
         param (
-            [string] $secret
+            [string] $secretName
         )
         if (-not $IsAzKeyvaultSet) {
             return $null
@@ -117,7 +118,7 @@ try {
             ConnectAzureKeyVaultIfNeeded -subscriptionId $subscriptionId -tenantId $tenantId -clientId $clientId -clientSecret $clientSecret
         }
 
-        $keyVaultSecret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secret 
+        $keyVaultSecret = Get-AzKeyVaultSecret -VaultName $script:keyVaultName -Name $secret 
         # todo: check what would happen in case of an exception like forbiden or not found
         if ($keyVaultSecret) {
             $value = [Runtime.InteropServices.Marshal]::PtrToStringBSTR(([Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyVaultSecret.SecretValue)))
@@ -213,7 +214,7 @@ try {
                     }
 
                     if ($secret) {
-                        $value = GetKeyVaultSecret -secret $secret
+                        $value = GetKeyVaultSecret -secretName $secret
                         Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
                         $outSecrets += @{ "$envVar" = $value }
                         Write-Host "Secret $envVar successfully read from KeyVault Secret $secret"
