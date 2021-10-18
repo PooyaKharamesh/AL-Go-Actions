@@ -31,7 +31,7 @@ function GetGithubSecret {
 }
 	
 function Get-AzKeyVaultCredentials {
-    if (-not $script:IsAzKeyvaultSet) {
+    if (-not $IsAzKeyvaultSet) {
         throw "AZURE_CREDENTIALS is not set in your repo."
     }   
 
@@ -46,7 +46,7 @@ function Get-AzKeyVaultCredentials {
 }
 
 function InstallKeyVaultModuleIfNeeded {
-    if (-not $script:IsAzKeyvaultSet) {
+    if (-not $IsAzKeyvaultSet) {
         return
     }
 
@@ -65,7 +65,7 @@ function ConnectAzureKeyVaultIfNeeded {
         [string] $clientSecret 
     )
     try {
-        if ($script:AzKeyvaultConnectionExists) {
+        if ($AzKeyvaultConnectionExists) {
             return
         }
 
@@ -74,7 +74,7 @@ function ConnectAzureKeyVaultIfNeeded {
         $credential = New-Object PSCredential -argumentList $clientId, (ConvertTo-SecureString $clientSecret -AsPlainText -Force)
         Connect-AzAccount -ServicePrincipal -Tenant $tenantId -Credential $credential | Out-Null
         Set-AzContext -Subscription $subscriptionId -Tenant $tenantId | Out-Null
-        $script:AzKeyvaultConnectionExists = $true
+        $AzKeyvaultConnectionExists = $true
         Write-Host "Successfuly connected to Azure Key Vault."
     }
     catch {
@@ -88,11 +88,11 @@ function GetKeyVaultSecret {
         [string] $keyVaultName
     )
 
-    if (-not $script:IsAzKeyvaultSet) {
+    if (-not $IsAzKeyvaultSet) {
         return $null
     }
         
-    if (-not $script:AzKeyvaultConnectionExists) {
+    if (-not $AzKeyvaultConnectionExists) {
             
         InstallKeyVaultModuleIfNeeded
             
