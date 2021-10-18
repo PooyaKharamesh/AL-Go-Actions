@@ -7,7 +7,8 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-
+$IsAzKeyvaultSet = IsAzKeyVaultCredentialsSet
+$AzKeyvaultConnectionExists = $false
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     function GetGithubSecret {
@@ -32,6 +33,115 @@ try {
         }
 
         throw "Secret $envVar was not found in GitHub Secrets."
+    }
+
+    function IsAzKeyVaultCredentialsSet {
+        return $gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS"
+    }
+
+    function Get-AzKeyVaultCredentials {
+        if (-not $IsAzKeyvaultSet) {
+            throw "AZURE_CREDENTIALS is not set in your repo."
+        }   
+
+        try {
+            return $gitHuBSecrets.AZURE_CREDENTIALS | ConvertFrom-Json
+        }
+        catch {
+            throw "AZURE_CREDENTIALS are wrongly formatted."
+        }
+
+        throw "AZURE_CREDENTIALS are missing. In order to use a Keyvault, please add an AZURE_CREDENTIALS secret like explained here: https://docs.microsoft.com/en-us/azure/developer/github/connect-from-azure"
+    }
+
+    function InstallKeyVaultModuleIfNeeded {
+        if (-not $IsAzKeyvaultSet) {
+            return
+        }
+
+        if (-not (Get-InstalledModule -Name 'Az.KeyVault')) {
+            # module is not loaded
+            installModules -modules @('Az.KeyVault')
+        }
+    }
+    function ConnectAzureKeyVaultIfNeeded {
+        param( 
+            [string] $subscriptionId,
+            [string] $tenantId,
+            [string] $clientId ,
+            [string] $clientSecret 
+        )
+        try {
+            if ($AzKeyvaultConnectionExists) {
+                return
+            }
+
+            Clear-AzContext -Scope Process
+            Clear-AzContext -Scope CurrentUser -Force -ErrorAction SilentlyContinue
+            $credential = New-Object PSCredential -argumentList $clientId, (ConvertTo-SecureString $clientSecret -AsPlainText -Force)
+            Connect-AzAccount -ServicePrincipal -Tenant $tenantId -Credential $credential | Out-Null
+            Set-AzContext -Subscription $subscriptionId -Tenant $tenantId | Out-Null
+            $AzKeyvaultConnectionExists = $true
+        }
+        catch {
+            throw "Error trying to authenticate to Azure using Az. Error was $($_.Exception.Message)"
+        }
+    }
+
+    function GetKeyVaultSecret {
+        param (
+            [string] $secret
+        )
+        if (-not $IsAzKeyvaultSet) {
+            return $null
+        }
+        
+        if (-not $AzKeyvaultConnectionExists) {
+            
+            InstallKeyVaultModuleIfNeeded
+            
+            $credentialsJson = Get-AzKeyVaultCredentials
+            $clientId = $credentialsJson.clientId
+            $clientSecret = $credentialsJson.clientSecret
+            $subscriptionId = $credentialsJson.subscriptionId
+            $tenantId = $credentialsJson.tenantId
+            if ($global:keyVaultName -eq "" -and ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName")) {
+                $global:keyVaultName = $credentialsJson.KeyVaultName
+            }
+
+            ConnectAzureKeyVaultIfNeeded -subscriptionId $subscriptionId -tenantId $tenantId -clientId $clientId -clientSecret $clientSecret
+        }
+
+        $keyVaultSecret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secret 
+        # todo: check what would happen in case of an exception like forbiden or not found
+        if ($keyVaultSecret) {
+            $value = [Runtime.InteropServices.Marshal]::PtrToStringBSTR(([Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyVaultSecret.SecretValue)))
+            MaskValueInLog -value $value
+            MaskValueInLog -value $value.Replace('&', '\u0026')
+            return $value
+        }
+
+        return $null
+    }
+
+    function GetSecret {
+        param (
+            $secret
+        )
+
+        Write-Host "Try get the secret($secret) from the github environment"
+        $value = GetGithubSecret -secretName $secret
+        if ($value) {
+            return $value
+        }
+
+        Write-Host "Try get the secret($secret) from Key Vault"
+        $value = Get-KeyVaultSecret -secretName $secret
+        if ($value) {
+            return $value
+        }
+
+        throw "Could not find secret $secret"
     }
 
     if ($keyVaultName -eq "") {
@@ -80,11 +190,9 @@ try {
             $outSettings.appDependencyProbingPaths | 
             ForEach-Object {
                 if ($($_.authTokenSecret)) {
-                    $_.authTokenSecret = GetGithubSecret -secretName $_.authTokenSecret 
+                    $_.authTokenSecret = GetSecret -secret $_.authTokenSecret
                 }
             } 
-
-            $outSettings.appDependencyProbingPaths
         }
     }
     catch {
@@ -92,43 +200,8 @@ try {
     }
 
     if ($secretsCollection) {
-        if ($gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS") {
-            # use KeyVault for Secrets
-            try {
-                $credentials = $gitHuBSecrets.AZURE_CREDENTIALS | ConvertFrom-Json
-                $clientId = $credentials.clientId
-                $clientSecret = $credentials.clientSecret
-                $subscriptionId = $credentials.subscriptionId
-                $tenantId = $credentials.tenantId
-                if ($keyVaultName -eq "" -and ($credentials.PSObject.Properties.Name -eq "KeyVaultName")) {
-                    $keyVaultName = $credentials.KeyVaultName
-                }
-            }
-            catch {
-                OutputError -message "AZURE_CREDENTIALS are wrongly formatted."
-                Exit
-            }
-        }
-        elseif ($keyVaultName -ne "") {
-            OutputError -message "AZURE_CREDENTIALS are missing. In order to use a Keyvault, please add an AZURE_CREDENTIALS secret like explained here: https://docs.microsoft.com/en-us/azure/developer/github/connect-from-azure"
-            Exit
-        }
-
         if ($keyVaultName -ne "") {
-
-            installModules -modules @('Az.KeyVault')
-            try {
-                Clear-AzContext -Scope Process
-                Clear-AzContext -Scope CurrentUser -Force -ErrorAction SilentlyContinue
-                $credential = New-Object PSCredential -argumentList $clientId, (ConvertTo-SecureString $clientSecret -AsPlainText -Force)
-                Connect-AzAccount -ServicePrincipal -Tenant $tenantId -Credential $credential | Out-Null
-                Set-AzContext -Subscription $subscriptionId -Tenant $tenantId | Out-Null
-            }
-            catch {
-                OutputError -message "Error trying to authenticate to Azure using Az. Error was $($_.Exception.Message)"
-                Exit
-            }
-    
+            # TODO what is the intension here in the current implementation after the first exception the loop is broken. 
             try {
                 @($secretsCollection) | ForEach-Object {
                     $secretSplit = $_.Split('=')
@@ -137,30 +210,24 @@ try {
                     if ($secretSplit.Count -gt 1) {
                         $secret = $secretSplit[1]
                     }
-    
+
                     if ($secret) {
-                        $keyVaultSecret = Get-AzKeyVaultSecret -VaultName $keyVaultName -Name $secret 
-                        if ($keyVaultSecret) {
-                            $value = [Runtime.InteropServices.Marshal]::PtrToStringBSTR(([Runtime.InteropServices.Marshal]::SecureStringToBSTR($keyVaultSecret.SecretValue)))
-                            MaskValueInLog -value $value
-                            MaskValueInLog -value $value.Replace('&', '\u0026')
-                            Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
-                            $outSecrets += @{ "$envVar" = $value }
-                            Write-Host "Secret $envVar successfully read from KeyVault Secret $secret"
-                            $secretsCollection.Remove($_)
-                        }
+                        $value = GetKeyVaultSecret -secret $secret
+                        Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
+                        $outSecrets += @{ "$envVar" = $value }
+                        Write-Host "Secret $envVar successfully read from KeyVault Secret $secret"
                     }
-                    else {
-                        $secretsCollection.Remove($_)
-                    }
+
+                    $secretsCollection.Remove($_)
                 }
             }
             catch {
-                OutputError -message "Error reading from KeyVault. Error was $($_.Exception.Message)"
-                exit
+                throw "Error reading from KeyVault. Error was $($_.Exception.Message)"
             }
         }
     }
+
+    #TODO : what is the intension here. the  $secretsCollection.Remove($_) line will remove the secret if it is found/not found so it is always empty 
     if ($secretsCollection) {
         Write-Host "The following secrets was not found: $(($secretsCollection | ForEach-Object { 
         $secretSplit = @($_.Split('='))
