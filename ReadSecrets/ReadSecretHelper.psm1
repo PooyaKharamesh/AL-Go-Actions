@@ -6,6 +6,14 @@ function IsKeyVaultSet {
 
 $IsAzKeyvaultSet = IsKeyVaultSet
 
+function MaskValueInLog {
+    Param(
+        [string] $value
+    )
+
+    Write-Host "::add-mask::$value"
+}
+
 function GetGithubSecret {
     param (
         [string] $secretName
