@@ -7,8 +7,14 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+
+function IsAzKeyVaultCredentialsSet {
+    return $gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS"
+}
+
 $IsAzKeyvaultSet = IsAzKeyVaultCredentialsSet
 $AzKeyvaultConnectionExists = $false
+
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     function GetGithubSecret {
@@ -33,10 +39,6 @@ try {
         }
 
         throw "Secret $envVar was not found in GitHub Secrets."
-    }
-
-    function IsAzKeyVaultCredentialsSet {
-        return $gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS"
     }
 
     function Get-AzKeyVaultCredentials {
@@ -143,9 +145,6 @@ try {
 
         throw "Could not find secret $secret"
     }
-    
-    $IsAzKeyvaultSet = IsAzKeyVaultCredentialsSet
-    $AzKeyvaultConnectionExists = $false
 
     if ($keyVaultName -eq "") {
         # use SettingsJson
