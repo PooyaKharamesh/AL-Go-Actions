@@ -63,7 +63,7 @@ try {
             return
         }
 
-        if (-not (Get-InstalledModule -Name 'Az.KeyVault')) {
+        if (-not (Get-InstalledModule -Name 'Az.KeyVault' -erroraction 'silentlycontinue')) {
             # module is not loaded
             installModules -modules @('Az.KeyVault')
         }
