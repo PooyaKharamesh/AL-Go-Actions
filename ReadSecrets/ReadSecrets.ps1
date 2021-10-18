@@ -202,7 +202,6 @@ try {
 
     if ($secretsCollection) {
         if ($keyVaultName -ne "") {
-            # TODO what is the intension here in the current implementation after the first exception the loop is broken. 
             try {
                 @($secretsCollection) | ForEach-Object {
                     $secretSplit = $_.Split('=')
@@ -217,9 +216,8 @@ try {
                         Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
                         $outSecrets += @{ "$envVar" = $value }
                         Write-Host "Secret $envVar successfully read from KeyVault Secret $secret"
+                        $secretsCollection.Remove($_)
                     }
-
-                    $secretsCollection.Remove($_)
                 }
             }
             catch {
@@ -228,7 +226,6 @@ try {
         }
     }
 
-    #TODO : what is the intension here. the  $secretsCollection.Remove($_) line will remove the secret if it is found/not found so it is always empty 
     if ($secretsCollection) {
         Write-Host "The following secrets was not found: $(($secretsCollection | ForEach-Object { 
         $secretSplit = @($_.Split('='))
