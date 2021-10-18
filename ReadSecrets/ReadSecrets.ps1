@@ -11,11 +11,13 @@ Set-StrictMode -Version 2.0
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     Import-Module (Join-Path $PSScriptRoot ".\ReadSecretHelper.psm1")
+
     $outSecrets = [ordered]@{}
     if ($keyVaultName -eq "") {
         # use SettingsJson
         $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
         $outSettings = $settings
+
         $keyVaultName = $settings.KeyVaultName
         if ([string]::IsNullOrEmpty($keyVaultName) -and (IsKeyVaultSet)) {
             $credentialsJson = Get-AzKeyVaultCredentials
@@ -49,7 +51,6 @@ try {
         if ($secret) {
             $value = GetSecret -secret $secret -keyVaultName $keyVaultName
             if ($value) {
-                MaskValueInLog -value $value
                 Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
                 $outSecrets += @{ "$envVar" = $value }
                 Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
