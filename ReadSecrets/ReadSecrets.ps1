@@ -97,7 +97,7 @@ try {
         param (
             [string] $secretName
         )
-        
+
         if (-not $script:IsAzKeyvaultSet) {
             return $null
         }
@@ -148,7 +148,8 @@ try {
             return $value
         }
 
-        throw "Could not find secret $secret"
+        Write-Host  "Could not find secret $secret in Github secrets or Azure Key Vault"
+        return $null
     }
 
     if ($keyVaultName -eq "") {
@@ -170,64 +171,35 @@ try {
         [System.Collections.ArrayList]$secretsCollection = @($secrets.Split(','))
     }
 
-    try {
-        @($secretsCollection) | ForEach-Object {
-            $secretSplit = $_.Split('=')
-            $envVar = $secretSplit[0]
-            $secret = $envVar
-            if ($secretSplit.Count -gt 1) {
-                $secret = $secretSplit[1]
-            }
-            if ($gitHubSecrets.PSObject.Properties.Name -eq $secret) {
-                $value = $githubSecrets."$secret"
-                if ($value) {
-                    MaskValueInLog -value $value
-                    Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
-                    $outSecrets += @{ "$envVar" = $value }
-                    Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
-                    $secretsCollection.Remove($_)
-                }
-            }
+    @($secretsCollection) | ForEach-Object {
+        $secretSplit = $_.Split('=')
+        $envVar = $secretSplit[0]
+        $secret = $envVar
+        if ($secretSplit.Count -gt 1) {
+            $secret = $secretSplit[1]
         }
 
-        if ($updateSettingsWithValues) {
-            $outSettings.appDependencyProbingPaths | 
-            ForEach-Object {
-                if ($($_.authTokenSecret)) {
-                    $_.authTokenSecret = GetSecret -secret $_.authTokenSecret
-                }
-            } 
-        }
-    }
-    catch {
-        throw $_
-    }
-
-    if ($secretsCollection) {
-        if ($keyVaultName -ne "") {
-            try {
-                @($secretsCollection) | ForEach-Object {
-                    $secretSplit = $_.Split('=')
-                    $envVar = $secretSplit[0]
-                    $secret = $envVar
-                    if ($secretSplit.Count -gt 1) {
-                        $secret = $secretSplit[1]
-                    }
-
-                    if ($secret) {
-                        $value = GetKeyVaultSecret -secretName $secret
-                        Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
-                        $outSecrets += @{ "$envVar" = $value }
-                        Write-Host "Secret $envVar successfully read from KeyVault Secret $secret"
-                        $secretsCollection.Remove($_)
-                    }
-                }
-            }
-            catch {
-                throw "Error reading from KeyVault. Error was $($_.Exception.Message)"
+        if ($secret) {
+            $value = GetSecret -secret $secret
+            if ($value) {
+                MaskValueInLog -value $value
+                Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
+                $outSecrets += @{ "$envVar" = $value }
+                Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
+                $secretsCollection.Remove($_)
             }
         }
     }
+
+    if ($updateSettingsWithValues) {
+        $outSettings.appDependencyProbingPaths | 
+        ForEach-Object {
+            if ($($_.authTokenSecret)) {
+                $_.authTokenSecret = GetSecret -secret $_.authTokenSecret
+            }
+        } 
+    }
+
 
     if ($secretsCollection) {
         Write-Host "The following secrets was not found: $(($secretsCollection | ForEach-Object { 
