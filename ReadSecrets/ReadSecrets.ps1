@@ -110,8 +110,8 @@ try {
             $subscriptionId = $credentialsJson.subscriptionId
             $tenantId = $credentialsJson.tenantId
             
-            if ((Get-Variable -Name "KeyVaultName" -Scope global) -eq "" -and ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName")) {
-                Set-Variable -Name "KeyVaultName" -Value $credentialsJson.KeyVaultName -Scope global
+            if ((Get-Variable -Name "keyVaultName" -Scope global) -eq "" -and ($credentialsJson.PSObject.Properties.Name -eq "keyVaultName")) {
+                Set-Variable -Name "keyVaultName" -Value $credentialsJson.KeyVaultName -Scope global
             }
 
             ConnectAzureKeyVaultIfNeeded -subscriptionId $subscriptionId -tenantId $tenantId -clientId $clientId -clientSecret $clientSecret
