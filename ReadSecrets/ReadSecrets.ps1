@@ -110,8 +110,8 @@ try {
             $subscriptionId = $credentialsJson.subscriptionId
             $tenantId = $credentialsJson.tenantId
             
-            if ($script::keyVaultName -eq "" -and ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName")) {
-                $script::keyVaultName = $credentialsJson.KeyVaultName
+            if ($script:keyVaultName -eq "" -and ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName")) {
+                $script:keyVaultName = $credentialsJson.KeyVaultName
             }
 
             ConnectAzureKeyVaultIfNeeded -subscriptionId $subscriptionId -tenantId $tenantId -clientId $clientId -clientSecret $clientSecret
