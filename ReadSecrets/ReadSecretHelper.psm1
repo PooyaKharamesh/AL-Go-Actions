@@ -117,14 +117,14 @@ function GetSecret {
         [string] $keyVaultName
     )
 
-    Write-Host "Try get the secret($secret) from the github environment"
+    Write-Host "Try get the secret($secret) from the github environment."
     $value = GetGithubSecret -secretName $secret
     if ($value) {
         Write-Host "Secret($secret) was retrieved from the github environment."
         return $value
     }
 
-    Write-Host "Try get the secret($secret) from Key Vault"
+    Write-Host "Try get the secret($secret) from Key Vault ($keyVaultName)."
     $value = GetKeyVaultSecret -secretName $secret -keyVaultName $keyVaultName
     if ($value) {
         Write-Host "Secret($secret) was retrieved from the Key Vault."
