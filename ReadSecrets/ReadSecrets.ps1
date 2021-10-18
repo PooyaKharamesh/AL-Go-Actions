@@ -139,16 +139,18 @@ try {
         Write-Host "Try get the secret($secret) from the github environment"
         $value = GetGithubSecret -secretName $secret
         if ($value) {
+            Write-Host "Secret($secret) was retrieved from the github environment."
             return $value
         }
 
         Write-Host "Try get the secret($secret) from Key Vault"
         $value = GetKeyVaultSecret -secretName $secret
         if ($value) {
+            Write-Host "Secret($secret) was retrieved from the Key Vault."
             return $value
         }
 
-        Write-Host  "Could not find secret $secret in Github secrets or Azure Key Vault"
+        Write-Host  "Could not find secret $secret in Github secrets or Azure Key Vault."
         return $null
     }
 
