@@ -8,6 +8,8 @@ Param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 
+$gitHubSecrets = $env:Secrets | ConvertFrom-Json
+$outSecrets = [ordered]@{}
 function IsAzKeyVaultCredentialsSet {
     return $gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS"
 }
@@ -164,9 +166,6 @@ try {
     else {
         [System.Collections.ArrayList]$secretsCollection = @($secrets.Split(','))
     }
-
-    $gitHubSecrets = $env:Secrets | ConvertFrom-Json
-    $outSecrets = [ordered]@{}
 
     try {
         @($secretsCollection) | ForEach-Object {
