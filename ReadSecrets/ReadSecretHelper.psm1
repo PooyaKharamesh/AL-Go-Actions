@@ -1,6 +1,10 @@
 $gitHubSecrets = $env:Secrets | ConvertFrom-Json
-$IsAzKeyvaultSet = $gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS"
 $AzKeyvaultConnectionExists = $false
+function IsKeyVaultSet {
+    return  $gitHubSecrets.PSObject.Properties.Name -eq "AZURE_CREDENTIALS"
+}
+
+$IsAzKeyvaultSet = IsKeyVaultSet
 
 function GetGithubSecret {
     param (

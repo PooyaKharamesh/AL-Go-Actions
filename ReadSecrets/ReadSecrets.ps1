@@ -17,7 +17,7 @@ try {
         $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
         $outSettings = $settings
         $keyVaultName = $settings.KeyVaultName
-        if ([string]::IsNullOrEmpty($keyVaultName)) {
+        if ([string]::IsNullOrEmpty($keyVaultName) -and (IsKeyVaultSet)) {
             $credentialsJson = Get-AzKeyVaultCredentials
             if ($credentialsJson.PSObject.Properties.Name -eq "KeyVaultName") {
                 $keyVaultName = $credentialsJson.KeyVaultName
