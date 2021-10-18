@@ -140,7 +140,7 @@ try {
         }
 
         Write-Host "Try get the secret($secret) from Key Vault"
-        $value = Get-KeyVaultSecret -secretName $secret
+        $value = GetKeyVaultSecret -secretName $secret
         if ($value) {
             return $value
         }
