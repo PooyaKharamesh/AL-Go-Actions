@@ -113,7 +113,7 @@ function GetKeyVaultSecret {
 
 function GetSecret {
     param (
-        [script] $secret,
+        [string] $secret,
         [string] $keyVaultName
     )
 
