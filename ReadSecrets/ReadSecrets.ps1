@@ -62,7 +62,7 @@ try {
         $outSettings.appDependencyProbingPaths | 
         ForEach-Object {
             if ($($_.authTokenSecret)) {
-                $_.authTokenSecret = GetSecret -secret $_.authTokenSecret
+                $_.authTokenSecret = GetSecret -secret $_.authTokenSecret -keyVaultName $keyVaultName
             }
         } 
     }
