@@ -99,10 +99,13 @@ function GetReleaseNotes {
 
     $postParams = @{
         tag_name = $tag_name;
-        previous_tag_name = $previous_tag_name
-    } | ConvertTo-Json
+    } 
+    
+    if (-not [string]::IsNullOrEmpty($previous_tag_name)) {
+        $postParams["previous_tag_name"] = $previous_tag_name
+    }
 
-    Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Method POST -Body $postParams -Uri "$api_url/repos/$repository/releases/generate-notes" | ConvertFrom-Json
+    Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Method POST -Body ($postParams | ConvertTo-Json) -Uri "$api_url/repos/$repository/releases/generate-notes" | ConvertFrom-Json
 }
 
 function GetLatestRelease {
