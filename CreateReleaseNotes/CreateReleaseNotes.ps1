@@ -10,7 +10,7 @@ Set-StrictMode -Version 2.0
 
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
-    Import-Module (Join-Path $PSScriptRoot '..\Github-Helper.psm1')
+    Import-Module (Join-Path $PSScriptRoot '..\Github-Helper.psm1' -Resolve)
 
     $latestRelease = GetLatestRelease -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY 
     $latestReleaseTag = $latestRelease.tag_name
