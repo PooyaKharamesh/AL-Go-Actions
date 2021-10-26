@@ -101,7 +101,8 @@ function GetReleaseNotes {
         tag_name = $tag_name;
         previous_tag_name = $previous_tag_name
     }
-    Write-Host "params : $postParams "
+
+    Write-Host "params : $tag_name ,  $previous_tag_name"
 
     Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Method POST -Body $postParams -Uri "$api_url/repos/$repository/releases/generate-notes" | ConvertFrom-Json
 }
