@@ -90,6 +90,7 @@ function GetReleaseNotes {
     Param(
         [string] $token,
         [string] $repository = $ENV:GITHUB_REPOSITORY,
+        [string] $api_url = $ENV:GITHUB_API_URL,
         [string] $tag_name,
         [string] $previous_tag_name
     )
@@ -107,6 +108,7 @@ function GetReleaseNotes {
 function GetLatestRelease {
     Param(
         [string] $token,
+        [string] $api_url = $ENV:GITHUB_API_URL,
         [string] $repository = $ENV:GITHUB_REPOSITORY
     )
     
