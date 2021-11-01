@@ -6,29 +6,29 @@ Param(
     )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-$realseNotes = ""
+$releaseNotes = ""
 
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     Import-Module (Join-Path $PSScriptRoot '..\Github-Helper.psm1' -Resolve)
 
-    $latestRelease = GetLatestRelease -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY
+    $latestRelease = GetLatestRelease -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY 
 
     $latestReleaseTag = ""
     if ([bool]($latestRelease.PSobject.Properties.name -match "tag_name")) {
         $latestReleaseTag = $latestRelease.tag_name
     }
 
-    $realseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag
+    $releaseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag
 
-    Write-Host "set-output name=realseNotes::$realseNotes"
+    Write-Host "::set-output name=releaseNotes::$releaseNotes"
 }
 catch {
-    Write-Host "::Error:: Couldn't create release notes. Error was $($_.Exception.Message)"
-    Write-Host "You can modify the release note from the release page later."
+    OutputWarning -message "::Error:: Couldn't create release notes. Error was $($_.Exception.Message)"
+    OutputWarning -message "You can modify the release note from the release page later."
 
-    $realseNotes = ""
-    Write-Host "set-output name=realseNotes::$realseNotes"
+    $releaseNotes = ""
+    Write-Host "::set-output name=releaseNotes::$releaseNotes"
 }
     
-return $realseNotes
+return $releaseNotes

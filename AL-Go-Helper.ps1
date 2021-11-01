@@ -2,9 +2,13 @@ Param(
     [switch] $local
 )
 
-Import-Module (Join-Path $PSScriptRoot '.\Github-Helper.psm1')
+if (!$local) {
+    Import-Module (Join-Path $PSScriptRoot '.\Github-Helper.psm1')
+}
 
 $ErrorActionPreference = "stop"
+Set-StrictMode -Version 2.0
+
 $ALGoFolder = ".AL-Go\"
 $ALGoSettingsFile = ".AL-Go\settings.json"
 $RepoSettingsFile = ".github\AL-Go-Settings.json"
@@ -64,6 +68,19 @@ function invoke-hub {
     Write-Host -ForegroundColor Yellow "hub $command $remaining"
     hub $command $remaining
     if ($lastexitcode) { throw "hub $command error" }
+}
+
+function ConvertTo-HashTable {
+    [CmdletBinding()]
+    Param(
+        [parameter(ValueFromPipeline)]
+        [PSCustomObject] $object
+    )
+    $ht = @{}
+    if ($object) {
+        $object.PSObject.Properties | Foreach { $ht[$_.Name] = $_.Value }
+    }
+    $ht
 }
 
 function OutputError {
@@ -310,9 +327,10 @@ function ReadSettings {
         "installPerformanceToolkit"              = $false
         "enableCodeCop"                          = $false
         "enableUICop"                            = $false
+        "doNotBuildTests"                        = $false
         "doNotRunTests"                          = $false
         "appSourceCopMandatoryAffixes"           = @()
-        "memoryLimit"                            = "6G"
+        "memoryLimit"                            = ""
         "templateUrl"                            = ""
         "templateBranch"                         = ""
         "appDependencyProbingPaths"              = @()
@@ -336,7 +354,6 @@ function ReadSettings {
         }
     }
 
-    $settings | ConvertTo-Json | Out-Host
     $settings
 }
 
@@ -632,6 +649,9 @@ function CommitFromNewFolder {
 
     invoke-git add *
     invoke-git commit -m "$commitMessage"
+    if ($commitMessage.Length -gt 250) {
+        $commitMessage = "$($commitMessage.Substring(0,250))...)"
+    }
     if ($branch) {
         invoke-git push -u $serverUrl $branch
         invoke-hub pull-request -h $branch -m "$commitMessage"
@@ -789,6 +809,10 @@ function Enter-Value {
     $answer
 }
 
+function GetContainerName([string] $project) {
+    "bc$($project -replace "\W")$env:GITHUB_RUN_ID"
+}
+
 function CreateDevEnv {
     Param(
         [Parameter(Mandatory=$true)]
@@ -815,7 +839,9 @@ function CreateDevEnv {
         [Parameter(Mandatory=$true, ParameterSetName='local')]
         [pscredential] $credential,
         [Parameter(ParameterSetName='local')]
-        [string] $containerName = ""
+        [string] $containerName = "",
+        [string] $insiderSasToken = "",
+        [string] $LicenseFileUrl = ""
     )
 
     if ($PSCmdlet.ParameterSetName -ne $kind) {
@@ -840,9 +866,6 @@ function CreateDevEnv {
         if ($caller -eq "local") { $params += @{ "userName" = $userName } }
         $settings = ReadSettings @params
     
-        $insiderSasToken = ""
-        $LicenseFileUrl = ""
-
         if ($caller -eq "GitHubActions") {
             if ($kind -ne "cloud") {
                 OutputError -message "Unexpected. kind=$kind, caller=$caller"
@@ -966,11 +989,16 @@ function CreateDevEnv {
                 "artifact" = $repo.artifact.replace('{INSIDERSASTOKEN}',$insiderSasToken)
                 "auth" = $auth
                 "credential" = $credential
-                "updateLaunchJson" = "Local Sandbox"
             }
             if ($containerName) {
                 $runAlPipelineParams += @{
+                    "updateLaunchJson" = "Local Sandbox ($containerName)"
                     "containerName" = $containerName
+                }
+            }
+            else {
+                $runAlPipelineParams += @{
+                    "updateLaunchJson" = "Local Sandbox"
                 }
             }
         }
@@ -1059,7 +1087,7 @@ function CreateDevEnv {
             -AppSourceCopSupportedCountries @() `
             -doNotRunTests `
             -useDevEndpoint `
-            -keepContainer `
+            -keepContainer
     }
     finally {
         # Cleanup
