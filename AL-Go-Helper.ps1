@@ -148,6 +148,13 @@ function GetUniqueFolderName {
     $name
 }
 
+function GetTelemetrySignal {
+    param (
+        $id
+    )
+    
+}
+
 function stringToInt {
     Param(
         [string] $str,
@@ -196,7 +203,8 @@ function Expand-7zipArchive {
 
 function DownloadAndImportBcContainerHelper {
     Param(
-        [string] $version = "dev"
+        [string] $version = "dev",
+        [switch] $exportTelemetryFunctions = $true
     )
 
     Write-Host "Downloading BcContainerHelper $version version"
@@ -216,7 +224,7 @@ function DownloadAndImportBcContainerHelper {
     Expand-7zipArchive -Path "$tempName.zip" -DestinationPath $tempName
     Remove-Item -Path "$tempName.zip"
     $BcContainerHelperPath = (Get-Item -Path (Join-Path $tempName "*\BcContainerHelper.ps1")).FullName
-    . $BcContainerHelperPath
+    . $BcContainerHelperPath -ExportTelemetryFunctions:$exportTelemetryFunctions
     $tempName
 }
 
