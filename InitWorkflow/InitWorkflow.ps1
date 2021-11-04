@@ -14,6 +14,7 @@ try {
     Write-Host "set-output name=telemetryScope::$telemetryScope"
     if (-not $telemetryScope.CorrelationId) {
         $telemetryScope.CorrelationId = (New-Guid).ToString()
+        $telemetryScope.CorrelationId 
     }
      
     $correlationId = ($telemetryScope.CorrelationId).ToString()
