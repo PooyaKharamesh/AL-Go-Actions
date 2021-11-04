@@ -13,7 +13,7 @@ try {
     Write-Host "::set-output name=telemetryScope::$telemetryScope"
     Write-Host "set-output name=telemetryScope::$telemetryScope"
 
-    $correlationId = ($telemetry.CorrelationId).ToString()
+    $correlationId = ($telemetryScope.CorrelationId).ToString()
     Write-Host "::set-output name=correlationId::$correlationId"
     Write-Host "set-output name=correlationId::$correlationId"
 }
