@@ -9,7 +9,7 @@ try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 
-    $telemetryScope = InitTelemetryScope -name $workflowName -parameterValues $PSBoundParameters -includeParameters @()
+    $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1" -parameterValues $PSBoundParameters -includeParameters @()
     Write-Host "::set-output name=telemetryScope::$telemetryScope"
     Write-Host "set-output name=telemetryScope::$telemetryScope"
 
