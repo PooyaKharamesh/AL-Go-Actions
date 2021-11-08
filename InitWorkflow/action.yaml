@@ -4,11 +4,19 @@ inputs:
   workflowName:
       description: The name of the workflow
       required: false
+
 runs:
   using: composite
   steps:
     - run: ${{ github.action_path }}/InitWorkflow.ps1 -workflowName '${{ inputs.workflowName }}'
       shell: PowerShell
+outputs:
+  correlationId:
+    description: A correlation Id for the workflow
+    value: ${{steps.InitWorkflow.outputs.correlationId}}
+  telemetryScope:
+    description: A telemetryScope that covers the workflow
+    value: ${{steps.InitWorkflow.outputs.telemetryScope}}
 branding:
   icon: terminal
   color: blue
