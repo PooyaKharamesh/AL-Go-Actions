@@ -11,9 +11,6 @@ runs:
     - id : initworkflow
       run: ${{ github.action_path }}/InitWorkflow.ps1 -workflowName '${{ inputs.workflowName }}'
       shell: PowerShell
-    - run: echo ${{ steps.initworkflow.outputs.correlationId }} ${{ steps.initworkflow.outputs.telemetryScope }}             
-      shell: PowerShell
-
 outputs:
   correlationId:
     description: A correlation Id for the workflow
