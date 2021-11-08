@@ -21,9 +21,9 @@ try {
     } 
 
     $telemetryScope["Emitted"] = $false
-    
-    Write-Host "::set-output name=telemetryScope::$telemetryScope"
-    Write-Host "set-output name=telemetryScope::$($telemetryScope | ConvertTo-Json)"
+    $scopeJson = $telemetryScope | ConvertTo-Json
+    Write-Host "::set-output name=telemetryScope::$scopeJson"
+    Write-Host "set-output name=telemetryScope::$scopeJson"
 
     $correlationId = ($telemetryScope.CorrelationId).ToString()
     Write-Host "::set-output name=correlationId::$correlationId"
