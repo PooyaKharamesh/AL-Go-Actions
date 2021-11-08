@@ -17,10 +17,10 @@ runs:
 outputs:
   correlationId:
     description: A correlation Id for the workflow
-    value: ${{steps.initworkflow.outputs.correlationId}}
+    value: ${{ steps.initworkflow.outputs.correlationId }}
   telemetryScope:
     description: A telemetryScope that covers the workflow
-    value: ${{steps.initworkflow.outputs.telemetryScope}}
+    value: ${{ steps.initworkflow.outputs.telemetryScope }}
 branding:
   icon: terminal
   color: blue
