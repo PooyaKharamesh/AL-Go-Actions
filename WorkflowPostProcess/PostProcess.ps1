@@ -10,14 +10,17 @@ Set-StrictMode -Version 2.0
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
+    $bcContainerHelperConfig.TelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
+    $bcContainerHelperConfig.UseExtendedTelemetry = $true
+
+    Write-Host "here is the scope : $telemetryScope "
 
     if (-not $telemetryScope) {
         Write-Host "Could not find a valid telemetry scope. A telemetry scope would be created."
-        $telemetryScope = InitTelemetryScope -name  -parameterValues $PSBoundParameters -includeParameters @()
+        $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1"  -parameterValues $PSBoundParameters -includeParameters @()
     }
 
-    $bcContainerHelperConfig.TelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-    $bcContainerHelperConfig.UseExtendedTelemetry = $true
+
 
     Track -telemetryScope $telemetryScope -errorRecord $_
 }
