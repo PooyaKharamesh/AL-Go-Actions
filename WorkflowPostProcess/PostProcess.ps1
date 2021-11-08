@@ -2,7 +2,7 @@ Param(
     [Parameter(HelpMessage = "Name of workflow initiating the workflow", Mandatory = $false)]
     [string] $workflowName = $env:GITHUB_WORKFLOW,
     [Parameter(HelpMessage = "Telemetry scope generated during the workflow initialization", Mandatory = $false)]
-    [string] $telemetryScope = $null
+    $telemetryScope = $null
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
@@ -13,7 +13,7 @@ try {
     $bcContainerHelperConfig.TelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
     $bcContainerHelperConfig.UseExtendedTelemetry = $true
 
-    Write-Host "here is the scope : $( $telemetryScope | ConvertTo-Json) "
+    Write-Host "here is the scope : $($telemetryScope|ConvertTo-Json) "
 
     if (-not $telemetryScope) {
         Write-Host "Could not find a valid telemetry scope. A telemetry scope would be created."
