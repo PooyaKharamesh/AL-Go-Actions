@@ -13,14 +13,12 @@ try {
     $bcContainerHelperConfig.TelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
     $bcContainerHelperConfig.UseExtendedTelemetry = $true
 
-    Write-Host "here is the scope : $telemetryScope "
+    Write-Host "here is the scope : $( $telemetryScope | ConvertTo-Json) "
 
     if (-not $telemetryScope) {
         Write-Host "Could not find a valid telemetry scope. A telemetry scope would be created."
         $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1"  -parameterValues $PSBoundParameters -includeParameters @()
     }
-
-    Track -telemetryScope $telemetryScope -errorRecord $_
 }
 catch {
     OutputError -message $_.Exception.Message
