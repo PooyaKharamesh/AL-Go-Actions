@@ -17,10 +17,10 @@ try {
 
     
     if (-not $telemetryScope.CorrelationId) {
-        $telemetryScope.CorrelationId = (New-Guid).ToString()
+        $telemetryScope["CorrelationId"] = (New-Guid).ToString()
     } 
 
-    $telemetryScope.Emitted = $false
+    $telemetryScope["Emitted"] = $false
     
     Write-Host "::set-output name=telemetryScope::$telemetryScope"
     Write-Host "set-output name=telemetryScope::$($telemetryScope | ConvertTo-Json)"
