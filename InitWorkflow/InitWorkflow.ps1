@@ -19,8 +19,9 @@ try {
     
     if (-not $telemetryScope.CorrelationId) {
         $telemetryScope.CorrelationId = (New-Guid).ToString()
-        $telemetryScope.CorrelationId 
-    }
+    } 
+
+    $telemetryScope.Emitted = $false
      
     $correlationId = ($telemetryScope.CorrelationId).ToString()
     Write-Host "::set-output name=correlationId::$correlationId"
