@@ -27,7 +27,7 @@ catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-
+    Write-Host "Emitting the telemetry signal."
     TrackTrace -telemetryScope $telemetryScope
 
     # Cleanup
