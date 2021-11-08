@@ -19,7 +19,7 @@ try {
 
     $telemetryScope["Emitted"] = $false
 
-    $scopeJson = $telemetryScope | ConvertTo-Json
+    $scopeJson = $telemetryScope | ConvertTo-Json -Compress
     Write-Host "::set-output name=telemetryScope::$scopeJson"
     Write-Host "set-output name=telemetryScope::$scopeJson"
 
