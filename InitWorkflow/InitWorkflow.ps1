@@ -14,15 +14,17 @@ try {
     $bcContainerHelperConfig
 
     $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1" -parameterValues $PSBoundParameters -includeParameters @()
-    Write-Host "::set-output name=telemetryScope::$telemetryScope"
-    Write-Host "set-output name=telemetryScope::$telemetryScope"
+
     
     if (-not $telemetryScope.CorrelationId) {
         $telemetryScope.CorrelationId = (New-Guid).ToString()
     } 
 
     $telemetryScope.Emitted = $false
-     
+    
+    Write-Host "::set-output name=telemetryScope::$telemetryScope"
+    Write-Host "set-output name=telemetryScope::$telemetryScope"
+
     $correlationId = ($telemetryScope.CorrelationId).ToString()
     Write-Host "::set-output name=correlationId::$correlationId"
     Write-Host "set-output name=correlationId::$correlationId"
