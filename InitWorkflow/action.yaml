@@ -10,6 +10,9 @@ runs:
   steps:
     - run: ${{ github.action_path }}/InitWorkflow.ps1 -workflowName '${{ inputs.workflowName }}'
       shell: PowerShell
+    - id: testStep
+      shell: PowerShell
+      run:  Write-Host ${{steps.InitWorkflow.outputs.correlationId}} ${{steps.InitWorkflow.outputs.telemetryScope}} 
 outputs:
   correlationId:
     description: A correlation Id for the workflow
