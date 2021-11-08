@@ -16,6 +16,7 @@ try {
     $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1" -parameterValues $PSBoundParameters -includeParameters @()
     Write-Host "::set-output name=telemetryScope::$telemetryScope"
     Write-Host "set-output name=telemetryScope::$telemetryScope"
+    
     if (-not $telemetryScope.CorrelationId) {
         $telemetryScope.CorrelationId = (New-Guid).ToString()
         $telemetryScope.CorrelationId 
