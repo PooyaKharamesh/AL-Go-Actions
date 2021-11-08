@@ -20,8 +20,6 @@ try {
         $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1"  -parameterValues $PSBoundParameters -includeParameters @()
     }
 
-
-
     Track -telemetryScope $telemetryScope -errorRecord $_
 }
 catch {
