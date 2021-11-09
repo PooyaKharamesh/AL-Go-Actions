@@ -34,6 +34,8 @@ function GetTelemetrySignal {
 }
 
 function GetTelemeteryConfiguration {
+
+    Write-Host "Reading telemetry settings."
     return @{
         MicrosoftTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
         PartnerTelemetryConnectionString   = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
@@ -50,6 +52,7 @@ function CreateScope {
     )
 
     if ($bcContainerHelper) {
+        Write-Host "Download and import BcContainerHelper."
         $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
     }
     
