@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
 
-$telemetryScope = CreateScope -eventId "DO0079" -parentCorrelationId $parentCorrelationId -parameters ${"project" = $project}
+$telemetryScope = CreateScope -eventId "DO0079" -parentCorrelationId $parentCorrelationId 
 
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
