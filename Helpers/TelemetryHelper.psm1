@@ -47,15 +47,9 @@ function CreateScope {
     param (
         [string] $eventId,
         [string] $parentCorrelationId,
-        [hashtable] $parameters = @{},
-        [switch] $bcContainerHelper = $false
+        [hashtable] $parameters = @{}
     )
 
-    if ($bcContainerHelper) {
-        Write-Host "Download and import BcContainerHelper."
-        $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-    }
-    
     $telemetryconfig = GetTelemeteryConfiguration
 
     $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $telemetryconfig["MicrosoftTelemetryConnectionString"] 
