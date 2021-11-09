@@ -1119,3 +1119,10 @@ function ConvertTo-HashTable() {
     }
     $ht
 }
+
+function CreateTelemetryScope {
+    param (
+        OptionalParameters
+    )
+    
+}

@@ -3,6 +3,8 @@ Param(
     [string] $actor,
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
+    [Parameter(HelpMessage = "Specifies the parent correlation Id for the Telemetry signal", Mandatory = $false)]
+    [string] $parentCorrelationId,    
     [ValidateSet("PTE", "AppSource App" , "Test App")]
     [Parameter(HelpMessage = "Type of app to add (Per Tenant Extension, AppSource App, Test App)", Mandatory = $true)]
     [string] $type,
@@ -18,11 +20,13 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
+
+$telemetryScope = CreateScope -eventId "DO0072" -parentCorrelationId $parentCorrelationId
 
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     import-module (Join-Path -path $PSScriptRoot -ChildPath "AppHelper.psm1" -Resolve)
-
     Write-Host "Template type : $type"
 
     # Check parameters
@@ -83,4 +87,9 @@ try {
 }
 catch {
     OutputError -message "Adding a new app failed due to $($_.Exception.Message)"
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+}
+finally {
+    Write-Host "Emitting the telemetry signal."
+    TrackTrace -telemetryScope $telemetryScope
 }

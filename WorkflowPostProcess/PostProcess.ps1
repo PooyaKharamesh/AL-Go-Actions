@@ -18,7 +18,7 @@ try {
 
     if (-not $telemetryScope) {
         Write-Host "Could not find a valid telemetry scope. A telemetry scope would be created."
-        $telemetryScope = InitTelemetryScope -name $workflowName -eventId "test1"  -parameterValues $PSBoundParameters -includeParameters @()
+        $telemetryScope = InitTelemetryScope -eventId $workflowName -parameterValues $PSBoundParameters -includeParameters @()
     }
 }
 catch {

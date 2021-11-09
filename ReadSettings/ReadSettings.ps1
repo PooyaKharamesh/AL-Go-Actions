@@ -13,6 +13,9 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
+
+$telemetryScope = CreateScope -eventId "DO0079" -parentCorrelationId $parentCorrelationId -parameters ${"project" = $project}
 
 try {
     . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
@@ -58,4 +61,9 @@ try {
 }
 catch {
     OutputError -message $_.Exception.Message
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+}
+finally {
+    Write-Host "Emitting the telemetry signal."
+    TrackTrace -telemetryScope $telemetryScope
 }
