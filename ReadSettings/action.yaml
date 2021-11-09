@@ -33,7 +33,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - run: ${{ github.action_path }}/ReadSettings.ps1 -actor '${{ inputs.actor }}' -token '${{ inputs.token }}' -project '${{ inputs.project }}' -release '${{ inputs.release }}' -get '${{ inputs.get }}'
+    - run: ${{ github.action_path }}/ReadSettings.ps1 -actor '${{ inputs.actor }}' -token '${{ inputs.token }}' -parentCorrelationId '${{ inputs.parentCorrelationId }}' -project '${{ inputs.project }}' -release '${{ inputs.release }}' -get '${{ inputs.get }}'
       id: readsettings
       shell: PowerShell
 branding:
