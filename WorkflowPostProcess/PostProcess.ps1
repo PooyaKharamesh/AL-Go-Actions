@@ -14,9 +14,7 @@ try {
     $bcContainerHelperConfig.PartnerTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
     $bcContainerHelperConfig.UseExtendedTelemetry = $true
 
-    $telemetryScope = @{}
-    (ConvertFrom-Json $telemetryScopeJson).psobject.properties | ForEach-Object { $telemetryScope[$_.Name] = $_.Value }
-    Write-Host "here is the scope : $($telemetryScope|ConvertTo-Json) "
+    $telemetryScope = $telemetryScopeJson| ConvertFrom-Json | ConvertTo-HashTable 
 
     if (-not $telemetryScope) {
         Write-Host "Could not find a valid telemetry scope. A telemetry scope would be created."
