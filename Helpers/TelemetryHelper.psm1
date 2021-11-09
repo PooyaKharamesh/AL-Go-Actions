@@ -48,7 +48,7 @@ function CreateScope {
         [string] $eventId,
         [string] $parentCorrelationId,
         [hashtable] $parameters = @{},
-        [switch] $bcContainerHelper = $true
+        [switch] $bcContainerHelper = $false
     )
 
     if ($bcContainerHelper) {
