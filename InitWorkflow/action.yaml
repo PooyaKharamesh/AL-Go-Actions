@@ -11,6 +11,7 @@ runs:
     - id : initworkflow
       run: ${{ github.action_path }}/InitWorkflow.ps1 -workflowName '${{ inputs.workflowName }}'
       shell: PowerShell
+
 outputs:
   correlationId:
     description: A correlation Id for the workflow
