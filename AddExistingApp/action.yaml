@@ -12,6 +12,10 @@ inputs:
     description: The GitHub token running the action
     required: false
     default: ${{ github.token }}
+  parentCorrelationId:
+    description: Specifies the parent correlation Id for the Telemetry signal
+    required: false
+    default: ''       
   url:
     description: Direct Download Url of .app or .zip file
     required: true

@@ -20,6 +20,7 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+
 . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
@@ -85,12 +86,19 @@ try {
 
     Update-WorkSpaces -baseFolder $baseFolder -appName $folderName
     CommitFromNewFolder -serverUrl $serverUrl -commitMessage "New $type ($Name)" -branch $branch
+
+    TrackTrace -telemetryScope $telemetryScope
+
 }
 catch {
     OutputError -message "Adding a new app failed due to $($_.Exception.Message)"
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-    Write-Host "Emitting the telemetry signal."
-    TrackTrace -telemetryScope $telemetryScope
+    # Cleanup
+    try {
+        Remove-Module BcContainerHelper
+        Remove-Item $bcContainerHelperPath -Recurse
+    }
+    catch {}
 }

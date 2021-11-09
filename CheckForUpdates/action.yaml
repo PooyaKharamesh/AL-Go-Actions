@@ -13,6 +13,10 @@ inputs:
     description: The GitHub token running the action
     required: false
     default: ${{ github.token }}
+  parentCorrelationId:
+    description: Specifies the parent correlation Id for the Telemetry signal
+    required: false
+    default: '' 
   settingsJson:
     description: Settings from template repository in compressed Json format
     required: false

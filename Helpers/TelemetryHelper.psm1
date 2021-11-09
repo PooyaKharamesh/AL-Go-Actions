@@ -35,12 +35,15 @@ function GetTelemetrySignal {
 
 function GetTelemeteryConfiguration {
 
-    Write-Host "Reading telemetry settings."
-    return @{
+    $telemetryconfig = @{
         MicrosoftTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
-        PartnerTelemetryConnectionString   = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
+        PartnerTelemetryConnectionString   = "InstrumentationKey=904e7f11-fb59-429e-b5a8-53e1a9143c08;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
         UseExtendedTelemetry               = $false
     }
+
+    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $telemetryconfig["MicrosoftTelemetryConnectionString"] 
+    $bcContainerHelperConfig.PartnerTelemetryConnectionString = $telemetryconfig["PartnerTelemetryConnectionString"] 
+    $bcContainerHelperConfig.UseExtendedTelemetry = $telemetryconfig["UseExtendedTelemetry"]
 }
 
 function CreateScope {
@@ -50,21 +53,15 @@ function CreateScope {
         [hashtable] $parameters = @{}
     )
 
-    $telemetryconfig = GetTelemeteryConfiguration
+    GetTelemeteryConfiguration
+    $signalName = $signals[$eventId] 
 
-    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $telemetryconfig["MicrosoftTelemetryConnectionString"] 
-    $bcContainerHelperConfig.PartnerTelemetryConnectionString = $telemetryconfig["PartnerTelemetryConnectionString"] 
-    $bcContainerHelperConfig.UseExtendedTelemetry = $telemetryconfig["UseExtendedTelemetry"]
-
-    $signal = GetTelemetrySignal -eventId $eventId
-
-    if (-not $signal) {
+    if (-not $signalName) {
         throw "Invalid event id ($eventId) is enountered."
     }
 
-    $telemetryScope = InitTelemetryScope -name $signal["name"] -eventId $eventId -parameterValues $parameters.PSBase.Values -includeParameters $parameters.PSBase.Keys 
+    $telemetryScope = InitTelemetryScope -name $signalName -eventId $eventId  -parameterValues @()  -includeParameters @()
     $telemetryScope["Emitted"] = $false
-    $telemetryScope[""] = $false
 
     if ($parentCorrelationId) {
         $telemetryScope["ParentId"] = $parentCorrelationId

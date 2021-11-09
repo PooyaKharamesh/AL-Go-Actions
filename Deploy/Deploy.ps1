@@ -3,6 +3,8 @@ Param(
     [string] $actor,
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
+    [Parameter(HelpMessage = "Specifies the parent correlation Id for the Telemetry signal", Mandatory = $false)]
+    [string] $parentCorrelationId,
     [Parameter(HelpMessage = "Projects to deploy (default is all)", Mandatory = $false)]
     [string] $projects = "*",
     [Parameter(HelpMessage = "Name of environment to deploy to", Mandatory = $true)]
@@ -17,11 +19,13 @@ Param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 
+. (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
+$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
+import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
+
+$telemetryScope = CreateScope -eventId "DO0079" -parentCorrelationId $parentCorrelationId 
+
 try {
-    . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
-
-    $BcContainerHelperPath = DownloadAndImportBcContainerHelper
-
     if ($projects -eq '') { $projects = "*" }
 
     $apps = @()
@@ -134,9 +138,13 @@ try {
             exit
         }
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+
 }
 catch {
     OutputError -message $_.Exception.Message
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
     # Cleanup

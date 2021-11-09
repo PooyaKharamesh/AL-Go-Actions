@@ -5,6 +5,10 @@ inputs:
     description: Project folder
     required: false
     default: '.'
+  parentCorrelationId:
+    description: Specifies the parent correlation Id for the Telemetry signal
+    required: false
+    default: '' 
 runs:
   using: composite
   steps:

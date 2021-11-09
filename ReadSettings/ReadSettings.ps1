@@ -61,12 +61,19 @@ try {
     Write-Host "::set-output name=SettingsJson::$outSettingsJson"
     Write-Host "set-output name=SettingsJson::$outSettingsJson"
     Add-Content -Path $env:GITHUB_ENV -Value "Settings=$OutSettingsJson"
+
+    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     OutputError -message $_.Exception.Message
     TrackException -telemetryScope $telemetryScope -errorRecord $_
+    exit
 }
 finally {
-    Write-Host "Emitting the telemetry signal."
-    TrackTrace -telemetryScope $telemetryScope
+    # Cleanup
+    try {
+        Remove-Module BcContainerHelper
+        Remove-Item $bcContainerHelperPath -Recurse
+    }
+    catch {}
 }
