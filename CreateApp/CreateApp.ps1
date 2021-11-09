@@ -20,13 +20,13 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+. (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
 
 $telemetryScope = CreateScope -eventId "DO0072" -parentCorrelationId $parentCorrelationId
 
 try {
-    . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
     import-module (Join-Path -path $PSScriptRoot -ChildPath "AppHelper.psm1" -Resolve)
     Write-Host "Template type : $type"
 

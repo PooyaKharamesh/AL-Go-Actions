@@ -14,15 +14,15 @@ Param(
 )
 
 $ErrorActionPreference = "Stop"
-Set-StrictMode -Version 2.0
+Set-StrictMode -Version 2.0    
+
+. (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
 
 $telemetryScope = CreateScope -eventId "DO0079" -parentCorrelationId $parentCorrelationId 
 
 try {
-    . (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
-
     if ($project  -eq ".") { $project = "" }
     $baseFolder = Join-Path $ENV:GITHUB_WORKSPACE $project
    
