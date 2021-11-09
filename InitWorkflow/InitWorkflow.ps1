@@ -1,6 +1,6 @@
 Param(
     [Parameter(HelpMessage = "Name of workflow initiating the workflow", Mandatory = $false)]
-    [string] $workflowName = $env:GITHUB_WORKFLOW
+    [string] $workflowName 
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
