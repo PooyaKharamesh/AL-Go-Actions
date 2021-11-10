@@ -4,7 +4,9 @@ Param(
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
     [Parameter(HelpMessage = "Specifies the parent correlation Id for the Telemetry signal", Mandatory = $false)]
-    [string] $parentCorrelationId,    
+    [string] $parentCorrelationId,
+    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
+    [bool] $telemetryEventId,    
     [ValidateSet("PTE", "AppSource App" , "Test App")]
     [Parameter(HelpMessage = "Type of app to add (Per Tenant Extension, AppSource App, Test App)", Mandatory = $true)]
     [string] $type,

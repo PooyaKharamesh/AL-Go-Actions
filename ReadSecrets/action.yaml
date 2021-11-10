@@ -19,7 +19,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: ${{ github.action_path }}/ReadSecrets.ps1 -settingsJson '${{ inputs.settingsJson }}' -secrets '${{ inputs.secrets }}' -updateSettingsWithValues ('${{ inputs.updateSettingsWithValues }}' -eq 'Y')
+    - run: ${{ github.action_path }}/ReadSecrets.ps1 -settingsJson '${{ inputs.settingsJson }}' -secrets '${{ inputs.secrets }}' -updateSettingsWithValues ('${{ inputs.updateSettingsWithValues }}' -eq 'Y') -parentCorrelationId '${{ inputs.parentCorrelationId }}' -telemetryEventId 'DO0078'
       shell: PowerShell
 branding:
   icon: terminal

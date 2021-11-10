@@ -12,7 +12,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: ${{ github.action_path }}/PipelineCleanup.ps1 -project '${{ inputs.project }}'
+    - run: ${{ github.action_path }}/PipelineCleanup.ps1 -project '${{ inputs.project }}' -parentCorrelationId '${{ inputs.parentCorrelationId }}' -telemetryEventId 'DO0077'
       shell: PowerShell
 branding:
   icon: terminal
