@@ -13,7 +13,7 @@ Param(
     [bool] $directCommit
 )
 
-. (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
+. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
 

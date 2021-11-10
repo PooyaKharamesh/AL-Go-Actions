@@ -6,7 +6,7 @@ Param(
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-. (Join-Path $PSScriptRoot "..\AL-Go-Helper.ps1")
+. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 try {
 
