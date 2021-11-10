@@ -5,11 +5,11 @@ Param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 Write-Host "PSScriptRoot  $PSScriptRoot"
-Write-Host (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
+Write-Host (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1" -Resolve)
 try {
     Write-Host "PSScriptRoot  $PSScriptRoot"
     Write-Host (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-    . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
+    . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1" -Resolve)
     $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
     
     $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
