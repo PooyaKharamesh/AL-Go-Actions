@@ -3,7 +3,7 @@ Param(
 )
 
 if (!$local) {
-    Import-Module (Join-Path $PSScriptRoot '.\Helpers\Github-Helper.psm1')
+    Import-Module (Join-Path $PSScriptRoot '.\Github-Helper.psm1')
 }
 
 $ErrorActionPreference = "stop"
