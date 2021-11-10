@@ -6,7 +6,7 @@ Param(
     [Parameter(HelpMessage = "Specifies the parent correlation Id for the Telemetry signal", Mandatory = $false)]
     [string] $parentCorrelationId,
     [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [bool] $telemetryEventId,
+    [string] $telemetryEventId,
     [Parameter(HelpMessage = "Projects to deploy (default is all)", Mandatory = $false)]
     [string] $projects = "*",
     [Parameter(HelpMessage = "Name of environment to deploy to", Mandatory = $true)]

@@ -6,7 +6,7 @@ Param(
     [Parameter(HelpMessage = "Specifies the parent correlation Id for the Telemetry signal", Mandatory = $false)]
     [string] $parentCorrelationId,
     [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [bool] $telemetryEventId,    
+    [string] $telemetryEventId,    
     [Parameter(HelpMessage = "Settings from template repository in compressed Json format", Mandatory = $false)]
     [string] $settingsJson = '{"templateUrl": "", "templateBranch": ""}',
     [Parameter(HelpMessage = "URL of the template repository (default is the template repository used to create the repository)", Mandatory = $false)]

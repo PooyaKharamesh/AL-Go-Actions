@@ -6,7 +6,7 @@ Param(
     [Parameter(HelpMessage = "Specifies the parent correlation Id for the Telemetry signal", Mandatory = $false)]
     [string] $parentCorrelationId,
     [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [bool] $telemetryEventId,     
+    [string] $telemetryEventId,     
     [Parameter(HelpMessage = "Name of the online environment", Mandatory = $true)]
     [string] $environmentName,
     [Parameter(HelpMessage = "Admin center API credentials", Mandatory = $false)]
