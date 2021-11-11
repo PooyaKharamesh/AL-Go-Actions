@@ -6,25 +6,21 @@ Param(
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
+
 try {
-
-    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-    $bcContainerHelperConfig.PartnerTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-    $bcContainerHelperConfig.UseExtendedTelemetry = $false
-
+    . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
+    
     $telemetryScope = $telemetryScopeJson| ConvertFrom-Json | ConvertTo-HashTable 
 
-    $localTelemetryScope = InitTelemetryScope -eventId $workflowName 
-    $localTelemetryScope.CorrelationId = $telemetryScope.CorrelationId
+    $localTelemetryScope = CreateScope -eventId $workflowName
 }
 catch {
     OutputError -message $_.Exception.Message
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-    Write-Host "Emitting the telemetry signal."
     TrackTrace -telemetryScope $telemetryScope
 
     # Cleanup

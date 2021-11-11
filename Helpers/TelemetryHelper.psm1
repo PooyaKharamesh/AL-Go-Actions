@@ -24,27 +24,19 @@ $signals = @{
     "DO0098" = "AL-Go.UpdateGitHubGoSystemFiles-Workflow";    
 }
 
-
-function GetTelemetrySignal {
-    param (
-        [string] $eventId
-    )
+function SetTelemeteryConfiguration {
     
-    return $signals[$eventId] 
-}
-
-function GetTelemeteryConfiguration {
-
-    $telemetryconfig = @{
-        MicrosoftTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
-        PartnerTelemetryConnectionString   = "InstrumentationKey=904e7f11-fb59-429e-b5a8-53e1a9143c08;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/";
-        UseExtendedTelemetry               = $false
+    $userName = ""
+    if ($env:USERNAME) {
+        $userName = $env:USERNAME
     }
 
-    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $telemetryconfig["MicrosoftTelemetryConnectionString"] 
-    $bcContainerHelperConfig.PartnerTelemetryConnectionString = $telemetryconfig["PartnerTelemetryConnectionString"] 
-    $bcContainerHelperConfig.TelemetryConnectionString = $telemetryconfig["PartnerTelemetryConnectionString"] 
-    $bcContainerHelperConfig.UseExtendedTelemetry = $telemetryconfig["UseExtendedTelemetry"]
+    $baseFolder = Join-Path $PSScriptRoot ".." -Resolve
+    $settings = ReadSettings -baseFolder $baseFolder -userName $userName
+    
+    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $settings["MicrosoftTelemetryConnectionString"] 
+    $bcContainerHelperConfig.TelemetryConnectionString = $settings["TelemetryConnectionString"] 
+    $bcContainerHelperConfig.UseExtendedTelemetry = $settings["UseExtendedTelemetry"]
 }
 
 function CreateScope {
@@ -54,7 +46,7 @@ function CreateScope {
         [hashtable] $parameters = @{}
     )
 
-    GetTelemeteryConfiguration
+    SetTelemeteryConfiguration
     $signalName = $signals[$eventId] 
 
     if (-not $signalName) {
@@ -62,6 +54,8 @@ function CreateScope {
     }
 
     $telemetryScope = InitTelemetryScope -name $signalName -eventId $eventId  -parameterValues @()  -includeParameters @()
+   
+   # todo it should be set it in the nav container helper
     $telemetryScope["Emitted"] = $false
 
     if ($parentCorrelationId) {

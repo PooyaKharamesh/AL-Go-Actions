@@ -148,13 +148,6 @@ function GetUniqueFolderName {
     $name
 }
 
-function GetTelemetrySignal {
-    param (
-        $id
-    )
-    
-}
-
 function stringToInt {
     Param(
         [string] $str,
@@ -342,6 +335,9 @@ function ReadSettings {
         "templateUrl"                            = ""
         "templateBranch"                         = ""
         "appDependencyProbingPaths"              = @()
+        "MicrosoftTelemetryConnectionString"     = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
+        "PartnerTelemetryConnectionString"       = "InstrumentationKey=904e7f11-fb59-429e-b5a8-53e1a9143c08;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
+        "UseExtendedTelemetry"                   = $false
     }
 
     $RepoSettingsFile, $ALGoSettingsFile, (Join-Path $ALGoFolder "$workflowName.setting.json"), (Join-Path $ALGoFolder "$userName.settings.json") | ForEach-Object {

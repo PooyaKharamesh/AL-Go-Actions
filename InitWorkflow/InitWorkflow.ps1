@@ -4,26 +4,17 @@ Param(
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-Write-Host "PSScriptRoot  $PSScriptRoot"
-Write-Host (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1" -Resolve)
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1" -Resolve)
 
 try {
-    Write-Host "PSScriptRoot  $PSScriptRoot"
-    Write-Host (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-    . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1" -Resolve)
+    . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
     $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
     
-    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-    $bcContainerHelperConfig.PartnerTelemetryConnectionString = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-    $bcContainerHelperConfig.UseExtendedTelemetry = $true
+    $telemetryScope = CreateScope -eventId $workflowName
 
-    $telemetryScope = InitTelemetryScope -eventId $workflowName -parameterValues $PSBoundParameters -includeParameters @()
     if (-not $telemetryScope.CorrelationId) {
         $telemetryScope["CorrelationId"] = (New-Guid).ToString()
     } 
-
-    $telemetryScope["Emitted"] = $false
 
     $scopeJson = $telemetryScope | ConvertTo-Json -Compress
     Write-Host "::set-output name=telemetryScope::$scopeJson"
