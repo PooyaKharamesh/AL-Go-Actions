@@ -1,27 +1,27 @@
 . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
 
 $signals = @{
-    "DO0070" = "AL-Go .AddExistingApp-Action";                       
-    "DO0071" = "AL-Go .CheckForUpdates-Action";                      
-    "DO0072" = "AL-Go .CreateApp-Action";                            
-    "DO0073" = "AL-Go .CreateDevelopmentEnvironment-Action";         
-    "DO0074" = "AL-Go .CreateReleaseNotes-Action";                   
-    "DO0075" = "AL-Go .Deploy-Action";                               
-    "DO0076" = "AL-Go .IncrementVersionNumber-Action";               
-    "DO0077" = "AL-Go .PipelineCleanup-Action";                      
-    "DO0078" = "AL-Go .ReadSecrets-Action";                          
-    "DO0079" = "AL-Go .ReadSettings-Action";                         
-    "DO0080" = "AL-Go .RunPipeline-Action";
+    "DO0070" = "AL-Go action ran: AddExistingApp";                       
+    "DO0071" = "AL-Go action ran: CheckForUpdates";                      
+    "DO0072" = "AL-Go action ran: CreateApp";                            
+    "DO0073" = "AL-Go action ran: CreateDevelopmentEnvironment";         
+    "DO0074" = "AL-Go action ran: CreateReleaseNotes";                   
+    "DO0075" = "AL-Go action ran: Deploy";                               
+    "DO0076" = "AL-Go action ran: IncrementVersionNumber";               
+    "DO0077" = "AL-Go action ran: PipelineCleanup";                      
+    "DO0078" = "AL-Go action ran: ReadSecrets";                          
+    "DO0079" = "AL-Go action ran: ReadSettings";                         
+    "DO0080" = "AL-Go action ran: RunPipeline";
 
-    "DO0090" = "AL-Go.AddExistingAppOrTestApp-Workflow";            
-    "DO0091" = "AL-Go.CiCd-Workflow";                               
-    "DO0092" = "AL-Go.CreateApp-Workflow";                          
-    "DO0093" = "AL-Go.CreateOnlineDevelopmentEnvironment-Workflow"; 
-    "DO0094" = "AL-Go.CreateRelease-Workflow";                      
-    "DO0095" = "AL-Go.CreateTestApp-Workflow";                      
-    "DO0096" = "AL-Go.IncrementVersionNumber-Workflow";             
-    "DO0097" = "AL-Go.PublishToEnvironment-Workflow";               
-    "DO0098" = "AL-Go.UpdateGitHubGoSystemFiles-Workflow";    
+    "DO0090" = "AL-Go workflow ran: AddExistingAppOrTestApp";            
+    "DO0091" = "AL-Go workflow ran: CiCd";                               
+    "DO0092" = "AL-Go workflow ran: CreateApp";                          
+    "DO0093" = "AL-Go workflow ran: CreateOnlineDevelopmentEnvironment"; 
+    "DO0094" = "AL-Go workflow ran: CreateRelease";                      
+    "DO0095" = "AL-Go workflow ran: CreateTestApp";                      
+    "DO0096" = "AL-Go workflow ran: IncrementVersionNumber";             
+    "DO0097" = "AL-Go workflow ran: PublishToEnvironment";               
+    "DO0098" = "AL-Go workflow ran: UpdateGitHubGoSystemFiles";    
 }
 
 function SetTelemeteryConfiguration {
