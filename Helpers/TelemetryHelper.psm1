@@ -1,17 +1,17 @@
 . (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
 
 $signals = @{
-    "DO0070" = "AL-Go.AddExistingApp-Action";                       
-    "DO0071" = "AL-Go.CheckForUpdates-Action";                      
-    "DO0072" = "AL-Go.CreateApp-Action";                            
-    "DO0073" = "AL-Go.CreateDevelopmentEnvironment-Action";         
-    "DO0074" = "AL-Go.CreateReleaseNotes-Action";                   
-    "DO0075" = "AL-Go.Deploy-Action";                               
-    "DO0076" = "AL-Go.IncrementVersionNumber-Action";               
-    "DO0077" = "AL-Go.PipelineCleanup-Action";                      
-    "DO0078" = "AL-Go.ReadSecrets-Action";                          
-    "DO0079" = "AL-Go.ReadSettings-Action";                         
-    "DO0080" = "AL-Go.RunPipeline-Action";
+    "DO0070" = "AL-Go .AddExistingApp-Action";                       
+    "DO0071" = "AL-Go .CheckForUpdates-Action";                      
+    "DO0072" = "AL-Go .CreateApp-Action";                            
+    "DO0073" = "AL-Go .CreateDevelopmentEnvironment-Action";         
+    "DO0074" = "AL-Go .CreateReleaseNotes-Action";                   
+    "DO0075" = "AL-Go .Deploy-Action";                               
+    "DO0076" = "AL-Go .IncrementVersionNumber-Action";               
+    "DO0077" = "AL-Go .PipelineCleanup-Action";                      
+    "DO0078" = "AL-Go .ReadSecrets-Action";                          
+    "DO0079" = "AL-Go .ReadSettings-Action";                         
+    "DO0080" = "AL-Go .RunPipeline-Action";
 
     "DO0090" = "AL-Go.AddExistingAppOrTestApp-Workflow";            
     "DO0091" = "AL-Go.CiCd-Workflow";                               
@@ -43,6 +43,7 @@ function GetTelemeteryConfiguration {
 
     $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $telemetryconfig["MicrosoftTelemetryConnectionString"] 
     $bcContainerHelperConfig.PartnerTelemetryConnectionString = $telemetryconfig["PartnerTelemetryConnectionString"] 
+    $bcContainerHelperConfig.TelemetryConnectionString = $telemetryconfig["PartnerTelemetryConnectionString"] 
     $bcContainerHelperConfig.UseExtendedTelemetry = $telemetryconfig["UseExtendedTelemetry"]
 }
 
