@@ -12,7 +12,7 @@ try {
     $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
     import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
     
-    $telemetryScope = RegisterTelemetryScope $foreignTelemetryScopeJson
+    $telemetryScope = RegisterTelemetryScope $telemetryScopeJson
 }
 catch {
     OutputError -message $_.Exception.Message

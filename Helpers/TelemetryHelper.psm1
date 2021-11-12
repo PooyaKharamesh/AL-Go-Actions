@@ -53,7 +53,7 @@ function CreateScope {
     }
 
     if ($parentTelemetryScope) {
-        $telemetryScope = RegisterTelemetryScope $foreignTelemetryScopeJson
+        $telemetryScope = RegisterTelemetryScope $parentTelemetryScope
         #AddTelemetryProperty -telemetryScope $telemetryScopeForeign -key "TestKeyForeign2" -value "TestValueForeign2"
     }
     else {
