@@ -15,6 +15,7 @@ try {
 
     write-Host "Registering the scope $telemetryScopeJson"
     $telemetryScope = RegisterTelemetryScope $telemetryScopeJson
+    InitTelemetryScope -name "Dummy" -eventId "Dummy"
 
     $telemetryScope["Emitted"] = $false
     write-Host "scope $($telemetryScope| ConvertTo-Json)"
