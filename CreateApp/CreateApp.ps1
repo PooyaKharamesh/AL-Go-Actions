@@ -27,7 +27,7 @@ Set-StrictMode -Version 2.0
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
 
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentCorrelationId $parentTelemetryScope
+$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
 
 try {
     import-module (Join-Path -path $PSScriptRoot -ChildPath "AppHelper.psm1" -Resolve)
