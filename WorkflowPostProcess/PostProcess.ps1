@@ -1,6 +1,6 @@
 Param(
     [Parameter(HelpMessage = "Name of workflow initiating the workflow", Mandatory = $false)]
-    [string] $workflowName = $env:GITHUB_WORKFLOW,
+    [string] $eventId,
     [Parameter(HelpMessage = "Telemetry scope generated during the workflow initialization", Mandatory = $false)]
     $telemetryScopeJson = $null
 )
@@ -15,7 +15,7 @@ try {
 
     SetTelemeteryConfiguration
     
-    $localTelemetryScope = InitTelemetryScope -name "" -eventId $workflowName  -parameterValues @()  -includeParameters @()
+    $localTelemetryScope = InitTelemetryScope -name "" -eventId $eventId  -parameterValues @()  -includeParameters @()
 
     Write-Host "registering parent telemetery scope $telemetryScopeJson"
     $telemetryScope = RegisterTelemetryScope $telemetryScopeJson
