@@ -58,6 +58,7 @@ function CreateScope {
     }
 
     $telemetryScope = InitTelemetryScope -name $signalName -eventId $eventId  -parameterValues @()  -includeParameters @()
+    $telemetryScope["Emitted"] = $false
 
     return $telemetryScope
 }
