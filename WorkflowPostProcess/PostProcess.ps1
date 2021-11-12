@@ -13,6 +13,7 @@ try {
     import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
     
     $telemetryScope = RegisterTelemetryScope $telemetryScopeJson
+    $telemetryScope["Emitted"] = $false
 }
 catch {
     OutputError -message $_.Exception.Message
