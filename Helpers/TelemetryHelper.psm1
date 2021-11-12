@@ -56,9 +56,8 @@ function CreateScope {
         $telemetryScope = RegisterTelemetryScope $parentTelemetryScope
         #AddTelemetryProperty -telemetryScope $telemetryScopeForeign -key "TestKeyForeign2" -value "TestValueForeign2"
     }
-    else {
-        $telemetryScope = InitTelemetryScope -name $signalName -eventId $eventId  -parameterValues @()  -includeParameters @()
-    }
+
+    $telemetryScope = InitTelemetryScope -name $signalName -eventId $eventId  -parameterValues @()  -includeParameters @()
 
     return $telemetryScope
 }
