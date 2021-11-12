@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
 import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
 
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentCorrelationId $parentTelemetryScope 
+$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
 
 if ($project  -eq ".") { $project = "" }
 
