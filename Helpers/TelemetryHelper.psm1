@@ -53,6 +53,7 @@ function CreateScope {
     }
 
     if ($parentTelemetryScope) {
+        Write-Host "registering parent telemetery scope $parentTelemetryScope"
         $telemetryScope = RegisterTelemetryScope $parentTelemetryScope
         #AddTelemetryProperty -telemetryScope $telemetryScopeForeign -key "TestKeyForeign2" -value "TestValueForeign2"
     }
