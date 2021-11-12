@@ -15,6 +15,8 @@ try {
     $telemetryScope = RegisterTelemetryScope $telemetryScopeJson
 
     $telemetryScope["Emitted"] = $false
+    $telemetryScope["TopId"] = ""
+    $telemetryScope["ParentId"] = ""
     write-Host "scope $($telemetryScope| ConvertTo-Json)"
 
     TrackTrace -telemetryScope $telemetryScope
