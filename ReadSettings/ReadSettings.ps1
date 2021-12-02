@@ -4,9 +4,7 @@ Param(
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
     [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScope, 
-    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [string] $telemetryEventId,    
+    [string] $parentTelemetryScopeJson = '{}',
     [Parameter(HelpMessage = "Project folder", Mandatory = $false)]
     [string] $project = ".",
     [Parameter(HelpMessage = "Indicates whether this is called from a release pipeline", Mandatory = $false)]
@@ -16,16 +14,20 @@ Param(
 )
 
 $ErrorActionPreference = "Stop"
-Set-StrictMode -Version 2.0    
+Set-StrictMode -Version 2.0
+$telemetryScope = $null
 
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
-
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
+# IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $ENV:GITHUB_WORKSPACE
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
+    
+    $telemetryScope = CreateScope -eventId 'DO0079' -parentTelemetryScopeJson $parentTelemetryScopeJson
+
     if ($project  -eq ".") { $project = "" }
+
     $baseFolder = Join-Path $ENV:GITHUB_WORKSPACE $project
    
     $settings = ReadSettings -baseFolder $baseFolder -workflowName $env:GITHUB_WORKFLOW
@@ -38,13 +40,17 @@ try {
 
     if ($getSettings -contains 'appBuild' -or $getSettings -contains 'appRevision') {
         switch ($settings.versioningStrategy -band 15) {
-            0 { # Use RUNID
+            0 { # Use RUN_NUMBER and RUN_ATTEMPT
                 $settings.appBuild = $settings.runNumberOffset + [Int32]($ENV:GITHUB_RUN_NUMBER)
-                $settings.appRevision = 0
+                $settings.appRevision = [Int32]($ENV:GITHUB_RUN_ATTEMPT) - 1
             }
-            1 { # USE DATETIME
-                $settings.appBuild = [Int32]([DateTime]::Now.ToString('yyyyMMdd'))
-                $settings.appRevision = [Int32]([DateTime]::Now.ToString('hhmmss'))
+            1 { # Use RUN_ID and RUN_ATTEMPT
+                $settings.appBuild = [Int32]($ENV:GITHUB_RUN_ID)
+                $settings.appRevision = [Int32]($ENV:GITHUB_RUN_ATTEMPT) - 1
+            }
+            2 { # USE DATETIME
+                $settings.appBuild = [Int32]([DateTime]::UtcNow.ToString('yyyyMMdd'))
+                $settings.appRevision = [Int32]([DateTime]::UtcNow.ToString('hhmmss'))
             }
             default {
                 OutputError -message "Unknown version strategy $versionStrategy"
@@ -59,6 +65,7 @@ try {
         $outSettings += @{ "$setting" = $settings."$setting" }
         Add-Content -Path $env:GITHUB_ENV -Value "$setting=$($settings."$setting")"
     }
+
     $outSettingsJson = $outSettings | ConvertTo-Json -Compress
     Write-Host "::set-output name=SettingsJson::$outSettingsJson"
     Write-Host "set-output name=SettingsJson::$outSettingsJson"
@@ -67,15 +74,10 @@ try {
     TrackTrace -telemetryScope $telemetryScope
 }
 catch {
-    OutputError -message $_.Exception.Message
     TrackException -telemetryScope $telemetryScope -errorRecord $_
+    OutputError -message $_.Exception.Message
     exit
 }
 finally {
-    # Cleanup
-    try {
-        Remove-Module BcContainerHelper
-        Remove-Item $bcContainerHelperPath -Recurse
-    }
-    catch {}
+    CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
 }

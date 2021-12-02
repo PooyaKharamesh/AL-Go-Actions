@@ -4,9 +4,7 @@ Param(
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
     [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScope, 
-    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [string] $telemetryEventId,    
+    [string] $parentTelemetryScopeJson = '{}',
     [Parameter(HelpMessage = "Project folder", Mandatory = $false)]
     [string] $project = "",
     [Parameter(HelpMessage = "Settings from repository in compressed Json format", Mandatory = $false)]
@@ -17,14 +15,17 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+$telemetryScope = $null
 
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
-
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
+# IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $ENV:GITHUB_WORKSPACE 
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
+    
+    $telemetryScope = CreateScope -eventId 'DO0080' -parentTelemetryScopeJson $parentTelemetryScopeJson
+
     $runAlPipelineParams = @{}
     $environment = 'GitHubActions'
     if ($project  -eq ".") { $project = "" }
@@ -41,7 +42,7 @@ try {
     $secrets = $secretsJson | ConvertFrom-Json | ConvertTo-HashTable
     $appBuild = $settings.appBuild
     $appRevision = $settings.appRevision
-    'licenseFileUrl','insiderSasToken','CodeSignCertificateUrl','CodeSignCertificatePw','KeyVaultCertificateUrl','KeyVaultCertificatePw','KeyVaultClientId' | ForEach-Object {
+    'licenseFileUrl','insiderSasToken','CodeSignCertificateUrl','CodeSignCertificatePassword','KeyVaultCertificateUrl','KeyVaultCertificatePassword','KeyVaultClientId' | ForEach-Object {
         if ($secrets.ContainsKey($_)) {
             $value = $secrets."$_"
         }
@@ -51,21 +52,17 @@ try {
         Set-Variable -Name $_ -Value $value
     }
 
-    # todo should be removed from here 
-    $bcContainerHelperConfig.TelemetryConnectionString = "InstrumentationKey=84bd9223-67d4-4378-8590-9e4a46023be2;IngestionEndpoint=https://westeurope-1.in.applicationinsights.azure.com/"
-    $bcContainerHelperConfig.UseExtendedTelemetry = $true
+    $repo = AnalyzeRepo -settings $settings -baseFolder $baseFolder -insiderSasToken $insiderSasToken
+    if ((-not $repo.appFolders) -and (-not $repo.testFolders)) {
+        Write-Host "Repository is empty, exiting"
+        exit
+    }
 
     if ($settings.type -eq "AppSource App" ) {
         if ($licenseFileUrl -eq "") {
             OutputError -message "When building an AppSource App, you need to create a secret called LicenseFileUrl, containing a secure URL to your license file with permission to the objects used in the app."
             exit
         }
-    }
-
-    $repo = AnalyzeRepo -settings $settings -baseFolder $baseFolder -insiderSasToken $insiderSasToken -licenseFileUrl $licenseFileUrl
-
-    if (-not $repo.appFolders) {
-        exit
     }
 
     $artifact = $repo.artifact
@@ -85,16 +82,16 @@ try {
 
     # Check if insidersastoken is used (and defined)
 
-    if ($CodeSignCertificateUrl -and $CodeSignCertificatePw) {
+    if ($CodeSignCertificateUrl -and $CodeSignCertificatePassword) {
         $runAlPipelineParams += @{ 
             "CodeSignCertPfxFile" = $codeSignCertificateUrl
-            "CodeSignCertPfxPassword" = ConvertTo-SecureString -string $codeSignCertificatePw -AsPlainText -Force
+            "CodeSignCertPfxPassword" = ConvertTo-SecureString -string $codeSignCertificatePassword -AsPlainText -Force
         }
     }
-    if ($KeyVaultCertificateUrl -and $KeyVaultCertificatePw -and $KeyVaultClientId) {
+    if ($KeyVaultCertificateUrl -and $KeyVaultCertificatePassword -and $KeyVaultClientId) {
         $runAlPipelineParams += @{ 
             "KeyVaultCertPfxFile" = $KeyVaultCertificateUrl
-            "keyVaultCertPfxPassword" = ConvertTo-SecureString -string $keyVaultCertificatePw -AsPlainText -Force
+            "keyVaultCertPfxPassword" = ConvertTo-SecureString -string $keyVaultCertificatePassword -AsPlainText -Force
             "keyVaultClientId" = $keyVaultClientId
         }
     }
@@ -108,7 +105,7 @@ try {
             $artifactsFolder = Join-Path $baseFolder "artifacts"
             New-Item $artifactsFolder -ItemType Directory | Out-Null
             DownloadRelease -token $token -projects $project -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY -release $latestRelease -path $artifactsFolder
-            $previousApps += @((Get-ChildItem -Path $artifactsFolder).FullName)
+            $previousApps += @(Get-ChildItem -Path $artifactsFolder | ForEach-Object { $_.FullName })
         }
         else {
             OutputWarning -message "No previous release found"
@@ -156,6 +153,7 @@ try {
         }
     }
     
+    Write-Host "Invoke Run-AlPipeline"
     Run-AlPipeline @runAlPipelineParams `
         -pipelinename $workflowName `
         -containerName $containerName `
@@ -204,10 +202,5 @@ catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-    # Cleanup
-    try {
-        Remove-Module BcContainerHelper
-        Remove-Item $bcContainerHelperPath -Recurse
-    }
-    catch {}
+    CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
 }

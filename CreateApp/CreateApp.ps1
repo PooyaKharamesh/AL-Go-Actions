@@ -4,11 +4,11 @@ Param(
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
     [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScope, 
-    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [string] $telemetryEventId,    
+    [string] $parentTelemetryScopeJson = '{}',
+    [Parameter(HelpMessage = "Project name if the repository is setup for multiple projects", Mandatory = $false)]
+    [string] $project = '.',
     [ValidateSet("PTE", "AppSource App" , "Test App")]
-    [Parameter(HelpMessage = "Type of app to add (Per Tenant Extension, AppSource App, Test App)", Mandatory = $true)]
+    [Parameter(HelpMessage = "Type of app to add (PTE, AppSource App, Test App)", Mandatory = $true)]
     [string] $type,
     [Parameter(HelpMessage = "App Name", Mandatory = $true)]
     [string] $name,
@@ -22,14 +22,19 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+$telemetryScope = $null
 
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
-
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
+# IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
+    $branch = "$(if (!$directCommit) { [System.IO.Path]::GetRandomFileName() })"
+    $serverUrl = CloneIntoNewFolder -actor $actor -token $token -branch $branch
+    $repoBaseFolder = Get-Location
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $repoBaseFolder
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
+    $telemetryScope = CreateScope -eventId 'DO0072' -parentTelemetryScopeJson $parentTelemetryScopeJson
+    
     import-module (Join-Path -path $PSScriptRoot -ChildPath "AppHelper.psm1" -Resolve)
     Write-Host "Template type : $type"
 
@@ -44,20 +49,19 @@ try {
 
     $ids = Confirm-IdRanges -templateType $type -idrange $idrange
 
-    $branch = "$(if (!$directCommit) { [System.IO.Path]::GetRandomFileName() })"
-    $serverUrl = CloneIntoNewFolder -actor $actor -token $token -branch $branch
-
+    CheckAndCreateProjectFolder -project $project
     $baseFolder = Get-Location
+
     $orgfolderName = $name.Split([System.IO.Path]::getInvalidFileNameChars()) -join ""
     $folderName = GetUniqueFolderName -baseFolder $baseFolder -folderName $orgfolderName
     if ($folderName -ne $orgfolderName) {
         OutputWarning -message "$orgFolderName already exists as a folder in the repo, using $folderName instead"
     }
 
-    # Modify .github\go\settings.json
+    # Modify .AL-Go\settings.json
     try {
         $settingsJsonFile = Join-Path $baseFolder $ALGoSettingsFile
-        $SettingsJson = Get-Content $settingsJsonFile | ConvertFrom-Json
+        $SettingsJson = Get-Content $settingsJsonFile -Encoding UTF8 | ConvertFrom-Json
         if ($type -eq "Test App") {
             if ($SettingsJson.testFolders -notcontains $foldername) {
                 $SettingsJson.testFolders += @($folderName)
@@ -68,7 +72,7 @@ try {
                 $SettingsJson.appFolders += @($folderName)
             }
         }
-        $SettingsJson | ConvertTo-Json -Depth 99 | Set-Content -Path $settingsJsonFile
+        $SettingsJson | ConvertTo-Json -Depth 99 | Set-Content -Path $settingsJsonFile -Encoding UTF8
     }
     catch {
         throw "A malformed $ALGoSettingsFile is encountered. Error: $($_.Exception.Message)"
@@ -87,6 +91,8 @@ try {
     }
 
     Update-WorkSpaces -baseFolder $baseFolder -appName $folderName
+
+    Set-Location $repoBaseFolder
     CommitFromNewFolder -serverUrl $serverUrl -commitMessage "New $type ($Name)" -branch $branch
 
     TrackTrace -telemetryScope $telemetryScope
@@ -97,10 +103,5 @@ catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-    # Cleanup
-    try {
-        Remove-Module BcContainerHelper
-        Remove-Item $bcContainerHelperPath -Recurse
-    }
-    catch {}
+    CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
 }

@@ -4,11 +4,7 @@ Param(
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
     [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScope, 
-    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [string] $telemetryEventId,    
-    [Parameter(HelpMessage = "Settings from template repository in compressed Json format", Mandatory = $false)]
-    [string] $settingsJson = '{"templateUrl": "", "templateBranch": ""}',
+    [string] $parentTelemetryScopeJson = '{}',
     [Parameter(HelpMessage = "URL of the template repository (default is the template repository used to create the repository)", Mandatory = $false)]
     [string] $templateUrl = "",
     [Parameter(HelpMessage = "Branch in template repository to use for the update (default is the default branch)", Mandatory = $false)]
@@ -21,31 +17,51 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+$telemetryScope = $null
 
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
-
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
+# IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
     $baseFolder = $ENV:GITHUB_WORKSPACE
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $baseFolder
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
+    $telemetryScope = CreateScope -eventId 'DO0071' -parentTelemetryScopeJson $parentTelemetryScopeJson
 
     if ($update -and -not $token) {
         OutputError "You need to add a secret called GHTOKENWORKFLOW containing a personal access token with permissions to modify Workflows. This is done by opening https://github.com/settings/tokens, Generate a new token and check the workflow scope."
         exit
     }
 
-    if ($templateUrl -eq "" -and $templateBranch -eq "") {
-        $settings = $settingsJson | ConvertFrom-Json | ConvertTo-HashTable
-        $templateUrl = $settings.templateUrl
-        $templateBranch = $settings.templateBranch
+    # Support old calling convention
+    if (-not $templateUrl.Contains('@')) {
+        if ($templateBranch) {
+            $templateUrl += "@$templateBranch"
+        }
+        else {
+            $templateUrl += "@main"
+        }
     }
 
+    $RepoSettingsFile = ".github\AL-Go-Settings.json"
+    if (Test-Path $RepoSettingsFile) {
+        $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
+    }
+    else {
+        $repoSettings = @{}
+    }
+
+    $updateSettings = $true
+    if ($repoSettings.ContainsKey("TemplateUrl") -and $repoSettings.TemplateUrl -eq $templateUrl) {
+        $updateSettings = $false
+    }
+
+    $templateBranch = $templateUrl.Split('@')[1]
+    $templateUrl = $templateUrl.Split('@')[0]
+
     Set-Location $baseFolder
-    $headers = @{             
-        "Authorization" = "token $token"
-        "Accept"        = "application/vnd.github.baptiste-preview+json"
+    $headers = @{
+        "Accept" = "application/vnd.github.baptiste-preview+json"
     }
     if ($templateUrl -ne "") {
         try {
@@ -68,10 +84,13 @@ try {
         $templateInfo = $repoInfo.template_repository
     }
 
-    Write-Host "Using template from $($templateInfo.html_url)"
+    $templateUrl = $templateInfo.html_url
+    Write-Host "Using template from $templateUrl@$templateBranch"
 
-    if ($templateBranch) { $templateBranch = "/$templateBranch" }
-    $archiveUrl = $templateInfo.archive_url.Replace('{archive_format}','zipball').replace('{/ref}','')
+    $headers = @{             
+        "Accept" = "application/vnd.github.baptiste-preview+json"
+    }
+    $archiveUrl = $templateInfo.archive_url.Replace('{archive_format}','zipball').replace('{/ref}',"/$templateBranch")
     $tempName = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
     Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $archiveUrl -OutFile "$tempName.zip"
     Expand-7zipArchive -Path "$tempName.zip" -DestinationPath $tempName
@@ -85,7 +104,6 @@ try {
         Get-ChildItem -Path $baseFolder -Directory | Where-Object { Test-Path (Join-Path $_.FullName ".AL-Go") -PathType Container } | ForEach-Object {
             $checkfiles += @(@{ "dstPath" = Join-Path $_.Name ".AL-Go"; "srcPath" = ".AL-Go"; "pattern" = "*.ps1"; "type" = "script" })
         }
-
     }
     $updateFiles = @()
 
@@ -98,7 +116,7 @@ try {
         Get-ChildItem -Path $srcFolder -Filter $_.pattern | ForEach-Object {
             $srcFile = $_.FullName
             $fileName = $_.Name
-            $srcContent = (Get-Content -Path $srcFile -Raw).Replace("`r", "").Replace("`n", "`r`n")
+            $srcContent = (Get-Content -Path $srcFile -Encoding UTF8 -Raw).Replace("`r", "").Replace("`n", "`r`n")
             $name = $type
             if ($type -eq "workflow") {
                 $srcContent.Split("`n") | Where-Object { $_ -like "name:*" } | Select-Object -First 1 | ForEach-Object {
@@ -108,15 +126,15 @@ try {
             $dstFile = Join-Path $dstFolder $fileName
             if (Test-Path -Path $dstFile -PathType Leaf) {
                 # file exists, compare
-                $dstContent = (Get-Content -Path $dstFile -Raw).Replace("`r", "").Replace("`n", "`r`n")
+                $dstContent = (Get-Content -Path $dstFile -Encoding UTF8 -Raw).Replace("`r", "").Replace("`n", "`r`n")
                 if ($dstContent -ne $srcContent) {
-                    Write-Host "Updated $name ($fileName) available"
+                    Write-Host "Updated $name ($(Join-Path $dstPath $filename)) available"
                     $updateFiles += @{ "SrcFile" = "$srcFile"; "DstFile" = Join-Path $dstPath $filename }
                 }
             }
             else {
                 # new file
-                Write-Host "New $name ($fileName) available"
+                Write-Host "New $name ($(Join-Path $dstPath $filename)) available"
                 $updateFiles += @{ "SrcFile" = "$srcFile"; "DstFile" = Join-Path $dstPath $filename }
             }
         }
@@ -137,7 +155,7 @@ try {
         }
     }
     else {
-        if (($updateFiles) -or ($removeFiles)) {
+        if ($updateSettings -or ($updateFiles) -or ($removeFiles)) {
             try {
                 # URL for git commands
                 $tempRepo = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
@@ -169,6 +187,16 @@ try {
 
                 invoke-git status
 
+                $RepoSettingsFile = ".github\AL-Go-Settings.json"
+                if (Test-Path $RepoSettingsFile) {
+                    $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
+                }
+                else {
+                    $repoSettings = @{}
+                }
+                $repoSettings.templateUrl = "$templateUrl@$templateBranch"
+                $repoSettings | ConvertTo-Json -Depth 99 | Set-Content $repoSettingsFile -Encoding UTF8
+
                 $updateFiles | ForEach-Object {
                     $path = [System.IO.Path]::GetDirectoryName($_.DstFile)
                     if (-not (Test-Path -path $path -PathType Container)) {
@@ -186,14 +214,14 @@ try {
 
                 $message = "Updated AL-Go System Files"
 
-                invoke-git commit -m "$message"
+                invoke-git commit -m "'$message'"
 
                 if ($directcommit) {
                     invoke-git push $url
                 }
                 else {
                     invoke-git push -u $url $branch
-                    invoke-hub pull-request -h $branch -m "$message"
+                    invoke-gh pr create --fill --head $branch --repo $env:GITHUB_REPOSITORY
                 }
             }
             catch {
@@ -219,10 +247,5 @@ catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-    # Cleanup
-    try {
-        Remove-Module BcContainerHelper
-        Remove-Item $bcContainerHelperPath -Recurse
-    }
-    catch {}
+    CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
 }

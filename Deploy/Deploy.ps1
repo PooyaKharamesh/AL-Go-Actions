@@ -4,9 +4,7 @@ Param(
     [Parameter(HelpMessage = "The GitHub token running the action", Mandatory = $false)]
     [string] $token,
     [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScope, 
-    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [string] $telemetryEventId,
+    [string] $parentTelemetryScopeJson = '{}',
     [Parameter(HelpMessage = "Projects to deploy (default is all)", Mandatory = $false)]
     [string] $projects = "*",
     [Parameter(HelpMessage = "Name of environment to deploy to", Mandatory = $true)]
@@ -20,14 +18,17 @@ Param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
+$telemetryScope = $null
 
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
-
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
+# IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $ENV:GITHUB_WORKSPACE
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
+    
+    $telemetryScope = CreateScope -eventId 'DO0075' -parentTelemetryScopeJson $parentTelemetryScopeJson
+
     if ($projects -eq '') { $projects = "*" }
 
     $apps = @()
@@ -110,17 +111,28 @@ try {
     }
 
     $envName = $environmentName.Split(' ')[0]
-    $environment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $envName }
-    if (-not ($environment)) {
+    Write-Host "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantId)/$envName/deployment/url"
+    $response = Invoke-RestMethod -UseBasicParsing -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantId)/$envName/deployment/url"
+    if ($response.Status -eq "DoesNotExist") {
         OutputError -message "Environment with name $envName does not exist in the current authorization context."
+        exit
+    }
+    if ($response.Status -ne "Ready") {
+        OutputError -message "Environment with name $envName is not ready (Status is $($response.Status))."
         exit
     }
 
     $apps | ForEach-Object {
         try {
-            if ($environment.type -eq "Sandbox") {
-                Write-Host "Publishing apps using development endpoint"
-                Publish-BcContainerApp -bcAuthContext $bcAuthContext -environment $envName -appFile $_ -useDevEndpoint
+            if ($response.environmentType -eq 1) {
+                if ($bcAuthContext.ClientSecret) {
+                    Write-Host "Using S2S, publishing apps using automation API"
+                    Publish-PerTenantExtensionApps -bcAuthContext $bcAuthContext -environment $envName -appFiles $_
+                }
+                else {
+                    Write-Host "Publishing apps using development endpoint"
+                    Publish-BcContainerApp -bcAuthContext $bcAuthContext -environment $envName -appFile $_ -useDevEndpoint
+                }
             }
             else {
                 if ($type -eq 'CD') {
@@ -149,10 +161,5 @@ catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
-    # Cleanup
-    try {
-        Remove-Module BcContainerHelper
-        Remove-Item $bcContainerHelperPath -Recurse
-    }
-    catch {}
+    CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
 }

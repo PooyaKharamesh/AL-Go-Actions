@@ -1,5 +1,3 @@
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-
 $signals = @{
     "DO0070" = "AL-Go action ran: AddExistingApp";                       
     "DO0071" = "AL-Go action ran: CheckForUpdates";                      
@@ -24,42 +22,22 @@ $signals = @{
     "DO0098" = "AL-Go workflow ran: UpdateGitHubGoSystemFiles";    
 }
 
-function SetTelemeteryConfiguration {
-    
-    $userName = ""
-    if ($env:USERNAME) {
-        $userName = $env:USERNAME
-    }
-
-    $baseFolder = Join-Path $PSScriptRoot ".." -Resolve
-    $settings = ReadSettings -baseFolder $baseFolder -userName $userName
-    
-    $bcContainerHelperConfig.MicrosoftTelemetryConnectionString = $settings["MicrosoftTelemetryConnectionString"] 
-    $bcContainerHelperConfig.TelemetryConnectionString = $settings["TelemetryConnectionString"] 
-    $bcContainerHelperConfig.UseExtendedTelemetry = $settings["UseExtendedTelemetry"]
-}
-
 function CreateScope {
     param (
         [string] $eventId,
-        [string] $parentTelemetryScope, 
+        [string] $parentTelemetryScopeJson = '{}',
         [hashtable] $parameters = @{}
     )
 
-    SetTelemeteryConfiguration
     $signalName = $signals[$eventId] 
     if (-not $signalName) {
         throw "Invalid event id ($eventId) is enountered."
     }
 
-    if ($parentTelemetryScope) {
-        Write-Host "registering parent telemetery scope $parentTelemetryScope"
-        $telemetryScope = RegisterTelemetryScope $parentTelemetryScope
-        #AddTelemetryProperty -telemetryScope $telemetryScopeForeign -key "TestKeyForeign2" -value "TestValueForeign2"
+    if ($parentTelemetryScopeJson -and $parentTelemetryScopeJson -ne "{}") {
+        $telemetryScope = RegisterTelemetryScope $parentTelemetryScopeJson
     }
 
     $telemetryScope = InitTelemetryScope -name $signalName -eventId $eventId  -parameterValues @()  -includeParameters @()
-    $telemetryScope["Emitted"] = $false
-
     return $telemetryScope
 }

@@ -1,8 +1,8 @@
 Param(
-    [Parameter(HelpMessage = "Project folder", Mandatory = $false)]
-    [string] $project = ".",
-    [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScopeJson = '{}'
+    [Parameter(HelpMessage = "The event Id of the initiating workflow", Mandatory = $true)]
+    [string] $eventId,
+    [Parameter(HelpMessage = "Telemetry scope generated during the workflow initialization", Mandatory = $true)]
+    [string] $telemetryScopeJson
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,15 +13,12 @@ $telemetryScope = $null
 
 try {
     . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
-    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $ENV:GITHUB_WORKSPACE
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
     import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
-    
-    $telemetryScope = CreateScope -eventId 'DO0077' -parentTelemetryScopeJson $parentTelemetryScopeJson
-    
-    if ($project  -eq ".") { $project = "" }
 
-    $containerName = GetContainerName($project)
-    Remove-Bccontainer $containerName
+    if ($telemetryScopeJson -and $telemetryScopeJson -ne "{}") {
+        $telemetryScope = RegisterTelemetryScope $telemetryScopeJson
+    }
 
     TrackTrace -telemetryScope $telemetryScope
 }

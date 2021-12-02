@@ -1,25 +1,28 @@
 Param(
-    [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
-    [string] $parentTelemetryScope, 
-    [Parameter(HelpMessage = "Specifies the event Id in the telemetry", Mandatory = $false)]
-    [string] $telemetryEventId,
+
     [Parameter(HelpMessage = "Settings from template repository in compressed Json format", Mandatory = $false)]
     [string] $settingsJson = '{"keyVaultName": ""}',
     [Parameter(HelpMessage = "Comma separated list of Secrets to get", Mandatory = $true)]
     [string] $secrets = "",
     [Parameter(HelpMessage = "Specifies if the values of secrets should be updated", Mandatory = $false)]
-    [bool] $updateSettingsWithValues = $false
+    [bool] $updateSettingsWithValues = $false,
+    [Parameter(HelpMessage = "Specifies the parent telemetry scope for the Telemetry signal", Mandatory = $false)]
+    [string] $parentTelemetryScopeJson = '{}'
 )
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
-. (Join-Path $PSScriptRoot "..\Helpers\AL-Go-Helper.ps1")
-$BcContainerHelperPath = DownloadAndImportBcContainerHelper 
-import-module (Join-Path -path $PSScriptRoot -ChildPath "..\Helpers\TelemetryHelper.psm1" -Resolve)
+$telemetryScope = $null
 
-$telemetryScope = CreateScope -eventId $telemetryEventId -parentTelemetryScope $parentTelemetryScope
+# IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
+    . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper 
+    import-module (Join-Path -path $PSScriptRoot -ChildPath "..\TelemetryHelper.psm1" -Resolve)
+    
+    $telemetryScope = CreateScope -eventId 'DO0078' -parentTelemetryScopeJson $parentTelemetryScopeJson
+
     Import-Module (Join-Path $PSScriptRoot ".\ReadSecretsHelper.psm1")
 
     $outSecrets = [ordered]@{}
@@ -27,7 +30,7 @@ try {
     $outSettings = $settings
     $keyVaultName = $settings.KeyVaultName
     if ([string]::IsNullOrEmpty($keyVaultName) -and (IsKeyVaultSet)) {
-        $credentialsJson = Get-AzKeyVaultCredentials | ConvertTo-HashTable
+        $credentialsJson = Get-KeyVaultCredentials | ConvertTo-HashTable
         $credentialsJson.Keys | ForEach-Object { MaskValueInLog -value $credentialsJson."$_" }
         if ($credentialsJson.ContainsKey("KeyVaultName")) {
             $keyVaultName = $credentialsJson.KeyVaultName
@@ -56,7 +59,7 @@ try {
             if ($value) {
                 Add-Content -Path $env:GITHUB_ENV -Value "$envVar=$value"
                 $outSecrets += @{ "$envVar" = $value }
-                Write-Host "Secret $envVar successfully read from GitHub Secret $secret"
+                Write-Host "$envVar successfully read from secret $secret"
                 $secretsCollection.Remove($_)
             }
         }
@@ -99,10 +102,5 @@ catch {
     exit
 }
 finally {
-    # Cleanup
-    try {
-        Remove-Module BcContainerHelper
-        Remove-Item $bcContainerHelperPath -Recurse
-    }
-    catch {}
+    CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
 }

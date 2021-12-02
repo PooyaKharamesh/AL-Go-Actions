@@ -2,8 +2,9 @@ Param(
     [switch] $local
 )
 
-if (!$local) {
-    Import-Module (Join-Path $PSScriptRoot '.\Github-Helper.psm1')
+$gitHubHelperPath = Join-Path $PSScriptRoot 'Github-Helper.psm1'
+if (Test-Path $gitHubHelperPath) {
+    Import-Module $gitHubHelperPath
 }
 
 $ErrorActionPreference = "stop"
@@ -48,6 +49,8 @@ $testLibrariesApps = @($systemApplicationTestLibraryAppId, $TestsTestLibrariesAp
 $testFrameworkApps = @($anyAppId, $libraryAssertAppId, $libraryVariableStorageAppId) + $testLibrariesApps
 $testRunnerApps = @($permissionsMockAppId, $testRunnerAppId) + $performanceToolkitApps + $testLibrariesApps + $testFrameworkApps
 
+$MicrosoftTelemetryConnectionString = "InstrumentationKey=84bd9223-67d4-4378-8590-9e4a46023be2;IngestionEndpoint=https://westeurope-1.in.applicationinsights.azure.com/"
+
 function invoke-git {
     Param(
         [parameter(mandatory = $true, position = 0)][string] $command,
@@ -59,15 +62,17 @@ function invoke-git {
     if ($lastexitcode) { throw "git $command error" }
 }
 
-function invoke-hub {
+function invoke-gh {
     Param(
         [parameter(mandatory = $true, position = 0)][string] $command,
         [parameter(mandatory = $false, position = 1, ValueFromRemainingArguments = $true)] $remaining
     )
 
-    Write-Host -ForegroundColor Yellow "hub $command $remaining"
-    hub $command $remaining
-    if ($lastexitcode) { throw "hub $command error" }
+    Write-Host -ForegroundColor Yellow "gh $command $remaining"
+    $ErrorActionPreference = "SilentlyContinue"
+    gh $command $remaining
+    $ErrorActionPreference = "Stop"
+    if ($lastexitcode) { throw "gh $command error" }
 }
 
 function ConvertTo-HashTable {
@@ -196,17 +201,18 @@ function Expand-7zipArchive {
 
 function DownloadAndImportBcContainerHelper {
     Param(
-        [string] $version = "dev",
-        [switch] $exportTelemetryFunctions = $true
+        [string] $version = "0.0",
+        [string] $baseFolder = ""
     )
 
-    Write-Host "Downloading BcContainerHelper $version version"
     $tempName = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
     $webclient = New-Object System.Net.WebClient
-    if ($version -eq "dev") {
+    if ($version -eq "0.0") {
+        Write-Host "Downloading BcContainerHelper developer version"
         $webclient.DownloadFile("https://github.com/microsoft/navcontainerhelper/archive/dev.zip", "$tempName.zip")
     }
     else {
+        Write-Host "Downloading BcContainerHelper $version version"
         try {
             $webclient.DownloadFile("https://bccontainerhelper.azureedge.net/public/$($version).zip", "$tempName.zip")
         }
@@ -216,9 +222,58 @@ function DownloadAndImportBcContainerHelper {
     }
     Expand-7zipArchive -Path "$tempName.zip" -DestinationPath $tempName
     Remove-Item -Path "$tempName.zip"
+    
+    $params = @{ "ExportTelemetryFunctions" = $true }
+    if ($baseFolder) {
+        $repoSettingsPath = Join-Path $baseFolder $repoSettingsFile
+        if (-not (Test-Path $repoSettingsPath)) {
+            $repoSettingsPath = Join-Path $baseFolder "..\$repoSettingsFile"
+        }
+        $params += @{ "bcContainerHelperConfigFile" = $repoSettingsPath }
+    }
     $BcContainerHelperPath = (Get-Item -Path (Join-Path $tempName "*\BcContainerHelper.ps1")).FullName
-    . $BcContainerHelperPath -ExportTelemetryFunctions:$exportTelemetryFunctions
+    $NewVersion = Get-Content (Get-Item -Path (Join-Path $tempName "*\Version.txt")).FullName
+    $module = Get-Module BcContainerHelper
+    if ($module) {
+        $ExistingVersion = Get-Content (Get-Item -Path (Join-Path (Split-Path $module.Path -Parent) "Version.txt")).FullName
+        $trackTraceFunction = get-command TrackTrace -ErrorAction SilentlyContinue
+        if (-not $trackTraceFunction) {
+            OutputWarning "BcContainerHelper version $ExistingVersion was already imported without -ExportTelemetryFunctions. This version of AL-Go for GitHub requires the -ExportTelemetryFunctions switch to be used. If you experience issues, please uninstall all versions of BcContainerHelper from your build agent."
+        }
+        else {
+            if ($NewVersion -eq $ExistingVersion) {
+                Write-Host "BcContainerHelper version $newVersion is already installed/imported"
+            }
+            else {
+                if ($version -eq "0.0") {
+                    OutputWarning "BcContainerHelper version $ExistingVersion is already installed/imported. This version of AL-Go for GitHub expects the development version. If you experience issues, please uninstall all versions of BcContainerHelper from your build agent."
+                }
+                else {
+                    OutputWarning "BcContainerHelper version $ExistingVersion is already installed/imported. This version of AL-Go for GitHub expects $newVersion. If you experience issues, please uninstall all versions of BcContainerHelper from your build agent."
+                }
+            }
+            Remove-Item $tempName -Recurse -Force
+            $tempName = ""
+        }
+    }
+    else {
+       . $BcContainerHelperPath @params
+    }
     $tempName
+}
+function CleanupAfterBcContainerHelper {
+    Param(
+        [string] $bcContainerHelperPath
+    )
+
+    if ($bcContainerHelperPath) {
+        try {
+            Write-Host "Removing BcContainerHelper"
+            Remove-Module BcContainerHelper
+            Remove-Item $bcContainerHelperPath -Recurse -Force
+        }
+        catch {}
+    }
 }
 
 function MergeCustomObjectIntoOrderedDictionary {
@@ -335,9 +390,11 @@ function ReadSettings {
         "templateUrl"                            = ""
         "templateBranch"                         = ""
         "appDependencyProbingPaths"              = @()
-        "MicrosoftTelemetryConnectionString"     = "InstrumentationKey=b503f4de-5674-4d35-8b3e-df9e815e9473;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-        "PartnerTelemetryConnectionString"       = "InstrumentationKey=904e7f11-fb59-429e-b5a8-53e1a9143c08;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/"
-        "UseExtendedTelemetry"                   = $false
+        "githubRunner"                           = "windows-latest"
+        "alwaysBuildAllProjects"                 = $false
+        "MicrosoftTelemetryConnectionString"     = $MicrosoftTelemetryConnectionString
+        "PartnerTelemetryConnectionString"       = ""
+        "SendExtendedTelemetryToMicrosoft"       = $false
     }
 
     $RepoSettingsFile, $ALGoSettingsFile, (Join-Path $ALGoFolder "$workflowName.setting.json"), (Join-Path $ALGoFolder "$userName.settings.json") | ForEach-Object {
@@ -346,7 +403,7 @@ function ReadSettings {
         if (Test-Path $settingsPath) {
             try {
                 Write-Host "Reading $settingsFile"
-                $settingsJson = Get-Content $settingsPath | ConvertFrom-Json
+                $settingsJson = Get-Content $settingsPath -Encoding UTF8 | ConvertFrom-Json
        
                 # check settingsJson.version and do modifications if needed
          
@@ -366,7 +423,6 @@ function AnalyzeRepo {
         [hashTable] $settings,
         [string] $baseFolder,
         [string] $insiderSasToken,
-        [string] $licenseFileUrl,
         [switch] $doNotCheckArtifactSetting
     )
 
@@ -509,7 +565,7 @@ function AnalyzeRepo {
             else {
                 $dependencies.Add("$folderName", @())
                 try {
-                    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+                    $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
                     if ($appJson.PSObject.Properties.Name -eq 'Dependencies') {
                         $appJson.dependencies | ForEach-Object {
                             if ($_.PSObject.Properties.Name -eq "AppId") {
@@ -518,7 +574,14 @@ function AnalyzeRepo {
                             else {
                                 $id = $_.Id
                             }
-                            $dependencies."$folderName" += @( [ordered]@{ "id" = $id; "version" = $_.version } )
+                            if ($id -eq $applicationAppId) {
+                                if ([Version]$_.Version -gt [Version]$settings.applicationDependency) {
+                                    $settings.applicationDependency = $appDep
+                                }
+                            }
+                            else {
+                                $dependencies."$folderName" += @( [ordered]@{ "id" = $id; "version" = $_.version } )
+                            }
                         }
                     }
                     if ($appJson.PSObject.Properties.Name -eq 'Application') {
@@ -535,12 +598,15 @@ function AnalyzeRepo {
         }
     }
 
+    if ([Version]$settings.applicationDependency -gt [Version]$version) {
+        throw "Application dependency is set to $($settings.applicationDependency), which isn't compatible with the artifact version $version"
+    }
+
     # unpack all dependencies and update app- and test dependencies from dependency apps
     $settings.appDependencies + $settings.testDependencies | ForEach-Object {
         $dep = $_
         if ($dep -is [string]) {
-            
-
+            # TODO: handle pre-settings
         }
     }
 
@@ -583,7 +649,6 @@ function AnalyzeRepo {
     }
     if (-not $settings.appFolders) {
         OutputWarning -message "No apps found in appFolders in $ALGoSettingsFile"
-        exit
     }
 
     $settings
@@ -652,13 +717,13 @@ function CommitFromNewFolder {
     )
 
     invoke-git add *
-    invoke-git commit -m "$commitMessage"
     if ($commitMessage.Length -gt 250) {
         $commitMessage = "$($commitMessage.Substring(0,250))...)"
     }
+    invoke-git commit -m "'$commitMessage'"
     if ($branch) {
         invoke-git push -u $serverUrl $branch
-        invoke-hub pull-request -h $branch -m "$commitMessage"
+        invoke-gh pr create --fill --head $branch --repo $env:GITHUB_REPOSITORY
     }
     else {
         invoke-git push $serverUrl
@@ -853,7 +918,7 @@ function CreateDevEnv {
     }
 
     $runAlPipelineParams = @{}
-    $BcContainerHelperPath = DownloadAndImportBcContainerHelper
+    $BcContainerHelperPath = DownloadAndImportBcContainerHelper -baseFolder $baseFolder
     try {
         if ($caller -eq "local") {
             $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -934,13 +999,6 @@ function CreateDevEnv {
         if ($kind -eq "local") {
             $params += @{
                 "insiderSasToken" = $insiderSasToken
-                "licenseFileUrl" = $LicenseFileUrl
-            }
-            if ($settings.type -eq "AppSource App" ) {
-                if ($licenseFileUrl -eq "") {
-                    OutputError -message "When building an AppSource App, you need to create a secret called LicenseFileUrl, containing a secure URL to your license file with permission to the objects used in the app."
-                    exit
-                }
             }
         }
         elseif ($kind -eq "cloud") {
@@ -949,17 +1007,20 @@ function CreateDevEnv {
             }
         }
         $repo = AnalyzeRepo @params
-    
-        if (-not $repo.appFolders) {
+        if ((-not $repo.appFolders) -and (-not $repo.testFolders)) {
+            Write-Host "Repository is empty, exiting"
             exit
         }
-    
+
+        if ($kind -eq "local" -and $settings.type -eq "AppSource App" ) {
+            if ($licenseFileUrl -eq "") {
+                OutputError -message "When building an AppSource App, you need to create a secret called LicenseFileUrl, containing a secure URL to your license file with permission to the objects used in the app."
+                exit
+            }
+        }
+
         $installApps = $repo.installApps
         $installTestApps = $repo.installTestApps
-    
-        if (-not $repo.appFolders) {
-            exit
-        }
     
         $buildArtifactFolder = Join-Path $baseFolder "output"
         if (Test-Path $buildArtifactFolder) {
@@ -1094,12 +1155,7 @@ function CreateDevEnv {
             -keepContainer
     }
     finally {
-        # Cleanup
-        try {
-            Remove-Module BcContainerHelper
-            Remove-Item $bcContainerHelperPath -Recurse
-        }
-        catch {}
+        CleanupAfterBcContainerHelper -bcContainerHelperPath $bcContainerHelperPath
     }
 }
 
@@ -1114,4 +1170,51 @@ function ConvertTo-HashTable() {
         $object.PSObject.Properties | Foreach { $ht[$_.Name] = $_.Value }
     }
     $ht
+}
+
+function CheckAndCreateProjectFolder {
+    Param(
+        [string] $project
+    )
+
+    if (-not $project) { $project -eq "." }
+    if ($project -ne ".") {
+        if (Test-Path $ALGoSettingsFile) {
+            Write-Host "Reading $ALGoSettingsFile"
+            $settingsJson = Get-Content $ALGoSettingsFile -Encoding UTF8 | ConvertFrom-Json
+            if ($settingsJson.appFolders.Count -eq 0 -and $settingsJson.testFolders.Count -eq 0) {
+                OutputWarning "Converting the repository to a multi-project repository as no other apps have been added previously."
+                if (!(Test-Path "AL-Go-Settings.json")) {
+                    Copy-Item $ALGoSettingsFile -Destination ".github\AL-Go-Settings.json"
+                }
+                New-Item $project -ItemType Directory | Out-Null
+                Move-Item -path $ALGoFolder -Destination $project
+                Set-Location $project
+            }
+            else {
+                throw "Repository is setup for a single project, cannot add a project. Move all appFolders, testFolders and the .AL-Go folder to a subdirectory in order to convert to a multi-project repository."
+            }
+        }
+        else {
+            if (!(Test-Path $project)) {
+                New-Item -Path (Join-Path $project $ALGoFolder) -ItemType Directory | Out-Null
+                Set-Location $project
+                if (Test-Path "..\.github\AL-Go-Settings.json") {
+                    Copy-Item -Path "..\.github\AL-Go-Settings.json" -Destination $ALGoSettingsFile
+                }
+                else {
+                    OutputWarning "Project folder doesn't exist, creating a new project folder and a default settings file with type PTE and country us. Please modify if needed."
+                    [ordered]@{
+                        "type" = "PTE"
+                        "country" = "us"
+                        "appFolders" = @()
+                        "testFolders" = @()
+                    } | ConvertTo-Json | Set-Content $ALGoSettingsFile -Encoding UTF8
+                }
+            }
+            else {
+                Set-Location $project
+            }
+        }
+    }
 }
