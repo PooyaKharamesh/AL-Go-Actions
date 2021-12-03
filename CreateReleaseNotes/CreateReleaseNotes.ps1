@@ -34,7 +34,7 @@ try {
         $latestReleaseTag = $latestRelease.tag_name
     }
 
-    $releaseNotes = (GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag | ConvertTo-Json)
+    $releaseNotes = (GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag | ConvertFrom-Json)
     $releaseNotes 
     $releaseNotes = $releaseNotes.body -replace '\\n',[System.Environment]::NewLine
     Write-Host "::set-output name=releaseNotes::$releaseNotes"
