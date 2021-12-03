@@ -35,6 +35,9 @@ try {
     }
 
     $releaseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag
+    Write-Host "releaseNotes: $releaseNotes"
+    $releaseNotes = $releaseNotes | ConvertFrom-Json
+    $releaseNotes = $releaseNotes.body -replace '\\n',[System.Environment]::NewLine
     Write-Host "::set-output name=releaseNotes::$releaseNotes"
     Write-Host "set-output name=releaseNotes::$releaseNotes"
     
