@@ -124,12 +124,12 @@ function GetLatestRelease {
     )
     
     Write-Host "Getting the latest release from $api_url/repos/$repository/releases/latest"
-    $response = Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Uri "$api_url/repos/$repository/releases/latest"
-    if ($response.StatusCode -ne 200) {
+    try {
+        Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Uri "$api_url/repos/$repository/releases/latest" | ConvertFrom-Json
+    }
+    catch {
         retrun '{}' | ConvertFrom-Json
     }
-
-    $response.Content | ConvertFrom-Json
 }
 
 function DownloadRelease {
