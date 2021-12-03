@@ -38,12 +38,14 @@ try {
     Write-Host "releaseNotes: $releaseNotes"
     $releaseNotes = $releaseNotes | ConvertFrom-Json
     $releaseNotes = $releaseNotes.body ##-replace '\\n',[System.Environment]::NewLine
+    $releaseNotes = $releaseNotes -replace '%','%25' -replace '\n','%0A'   -replace '\n','%0A'  -replace '\r','%0D'
+
     Write-Host "::set-output name=releaseNotes::$releaseNotes"
     Write-Host "set-output name=releaseNotes::$releaseNotes"
     
-    echo "releaseNotes<<EOF" >> $GITHUB_ENV
-    echo "$releaseNotes" >> $GITHUB_ENV
-    echo "EOF" >> $GITHUB_ENV
+    # echo "releaseNotes<<EOF" >> $GITHUB_ENV
+    # echo "$releaseNotes" >> $GITHUB_ENV
+    # echo "EOF" >> $GITHUB_ENV
 
     TrackTrace -telemetryScope $telemetryScope
 }
