@@ -30,7 +30,7 @@ try {
     $latestRelease = GetLatestRelease -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY 
 
     $latestReleaseTag = ""
-    if ([bool]($latestRelease.PSobject.Properties.name -match "tag_name")) {
+    if ($latestRelease -and ([bool]($latestRelease.PSobject.Properties.name -match "tag_name"))){
         $latestReleaseTag = $latestRelease.tag_name
     }
 

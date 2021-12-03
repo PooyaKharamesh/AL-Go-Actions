@@ -128,7 +128,7 @@ function GetLatestRelease {
         Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Uri "$api_url/repos/$repository/releases/latest" | ConvertFrom-Json
     }
     catch {
-        return '{}' | ConvertFrom-Json
+        return $null
     }
 }
 
