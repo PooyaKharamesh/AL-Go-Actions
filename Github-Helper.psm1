@@ -113,7 +113,7 @@ function GetReleaseNotes {
         retrun '{}' | ConvertFrom-Json
     }
 
-    $response.Content | ConvertFrom-Json -Compress
+    $response.Content | ConvertFrom-Json 
 }
 
 function GetLatestRelease {

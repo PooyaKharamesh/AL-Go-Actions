@@ -34,7 +34,7 @@ try {
         $latestReleaseTag = $latestRelease.tag_name
     }
 
-    $releaseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag
+    $releaseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag | ConvertTo-Json -Compress
 
     Write-Host "::set-output name=releaseNotes::$releaseNotes"
     Write-Host "set-output name=releaseNotes::$releaseNotes"
