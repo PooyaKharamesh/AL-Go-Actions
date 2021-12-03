@@ -41,6 +41,10 @@ try {
     Write-Host "::set-output name=releaseNotes::$releaseNotes"
     Write-Host "set-output name=releaseNotes::$releaseNotes"
     
+    echo "releaseNotes<<EOF" >> $GITHUB_ENV
+    echo "$releaseNotes" >> $GITHUB_ENV
+    echo "EOF" >> $GITHUB_ENV
+
     TrackTrace -telemetryScope $telemetryScope
 }
 catch {
