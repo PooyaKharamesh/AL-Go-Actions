@@ -70,7 +70,7 @@ function expandfile {
         $destinationPath        
     }
     else {
-        Write-Host "Unknown file $path"
+        throw "Unknown file $path"
     }
 }
 
