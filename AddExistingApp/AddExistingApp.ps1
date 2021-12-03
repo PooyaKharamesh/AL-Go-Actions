@@ -70,7 +70,7 @@ function expandfile {
         $destinationPath        
     }
     else {
-        throw "The file is empty or malformed: $path"
+        throw "The provided url cannot be extracted. The url might be wrong or the file is malformed."
     }
 }
 
