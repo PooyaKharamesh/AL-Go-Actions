@@ -108,12 +108,7 @@ function GetReleaseNotes {
         $postParams["previous_tag_name"] = $previous_tag_name
     }
 
-    $response = Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Method POST -Body ($postParams | ConvertTo-Json) -Uri "$api_url/repos/$repository/releases/generate-notes" 
-    if ($response.StatusCode -ne 200) {
-        return '{}' | ConvertFrom-Json
-    }
-
-    $response.Content | ConvertFrom-Json 
+    Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Method POST -Body ($postParams | ConvertTo-Json) -Uri "$api_url/repos/$repository/releases/generate-notes" 
 }
 
 function GetLatestRelease {
