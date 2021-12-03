@@ -70,7 +70,7 @@ function expandfile {
         $destinationPath        
     }
     else {
-        throw "Unknown file $path"
+        throw "The file is empty or malformed: $path"
     }
 }
 
