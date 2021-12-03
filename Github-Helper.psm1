@@ -110,7 +110,7 @@ function GetReleaseNotes {
 
     $response = Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Method POST -Body ($postParams | ConvertTo-Json) -Uri "$api_url/repos/$repository/releases/generate-notes" 
     if ($response.StatusCode -ne 200) {
-        retrun '{}' | ConvertFrom-Json
+        return '{}' | ConvertFrom-Json
     }
 
     $response.Content | ConvertFrom-Json 
@@ -128,7 +128,7 @@ function GetLatestRelease {
         Invoke-WebRequest -UseBasicParsing -Headers (GetHeader -token $token) -Uri "$api_url/repos/$repository/releases/latest" | ConvertFrom-Json
     }
     catch {
-        retrun '{}' | ConvertFrom-Json
+        return '{}' | ConvertFrom-Json
     }
 }
 
