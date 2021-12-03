@@ -34,18 +34,11 @@ try {
         $latestReleaseTag = $latestRelease.tag_name
     }
 
-    $releaseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag
-    Write-Host "releaseNotes: $releaseNotes"
-    $releaseNotes = $releaseNotes | ConvertFrom-Json
-    $releaseNotes = $releaseNotes.body ##-replace '\\n',[System.Environment]::NewLine
-    $releaseNotes = $releaseNotes -replace '%','%25' -replace '\n','%0A'   -replace '\n','%0A'  -replace '\r','%0D'
+    $releaseNotes = GetReleaseNotes -token $token -api_url $ENV:GITHUB_API_URL -repository $ENV:GITHUB_REPOSITORY  -tag_name $tag_name -previous_tag_name $latestReleaseTag | ConvertFrom-Json
+    $releaseNotes = $releaseNotes.body -replace '%','%25' -replace '\n','%0A' -replace '\r','%0D' # supports a multiline text
 
     Write-Host "::set-output name=releaseNotes::$releaseNotes"
     Write-Host "set-output name=releaseNotes::$releaseNotes"
-    
-    # echo "releaseNotes<<EOF" >> $GITHUB_ENV
-    # echo "$releaseNotes" >> $GITHUB_ENV
-    # echo "EOF" >> $GITHUB_ENV
 
     TrackTrace -telemetryScope $telemetryScope
 }
