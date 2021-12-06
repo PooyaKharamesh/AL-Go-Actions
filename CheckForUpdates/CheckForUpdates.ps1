@@ -58,7 +58,7 @@ try {
             $templateUrl += "@main"
         }
     }
-
+    Write-Host"this is a test $repoSettingsFile"
     $repoSettings = ReadSettings -repoSettingsFile $repoSettingsFile
 
     $updateSettings = $true
