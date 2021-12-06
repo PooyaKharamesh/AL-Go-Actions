@@ -19,7 +19,6 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 $telemetryScope = $null
 
-
 # IMPORTANT: No code that can fail should be outside the try/catch
 
 try {
@@ -30,7 +29,8 @@ try {
     $telemetryScope = CreateScope -eventId 'DO0071' -parentTelemetryScopeJson $parentTelemetryScopeJson
 
     if ($update -and -not $token) {
-        throw "You need to add a secret called GHTOKENWORKFLOW containing a personal access token with permissions to modify Workflows. This is done by opening https://github.com/settings/tokens, Generate a new token and check the workflow scope."
+        OutputError "You need to add a secret called GHTOKENWORKFLOW containing a personal access token with permissions to modify Workflows. This is done by opening https://github.com/settings/tokens, Generate a new token and check the workflow scope."
+        exit
     }
 
     # Support old calling convention
@@ -63,19 +63,24 @@ try {
     $headers = @{
         "Accept" = "application/vnd.github.baptiste-preview+json"
     }
-
     if ($templateUrl -ne "") {
-        $templateUrl = $templateUrl -replace "https://www.github.com/","$($ENV:GITHUB_API_URL)/repos/" 
-        Write-Host "Api url $templateUrl"
-        $templateInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $templateUrl | ConvertFrom-Json
+        try {
+            $templateUrl = $templateUrl -replace "https://www.github.com/","https://api.github.com/repos/" -replace "https://github.com/","https://api.github.com/repos/"
+            Write-Host "Api url $templateUrl"
+            $templateInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $templateUrl | ConvertFrom-Json
+        }
+        catch {
+            OutputError -message "Error reading template repository. Error was $($_.Exception.Message)"
+            exit
+        }
     }
     else {
         Write-Host "Api url $($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)"
         $repoInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)" | ConvertFrom-Json
         if (!($repoInfo.PSObject.Properties.Name -eq "template_repository")) {
-            throw "This repository wasn't built on a template repository, or the template repository has been deleted. You have to specify a template repository URL manually."
+            OutputWarning -message "This repository wasn't built on a template repository, or the template repository has been deleted. You have to specify a template repository URL manually."
+            exit
         }
-
         $templateInfo = $repoInfo.template_repository
     }
 
@@ -135,6 +140,11 @@ try {
         }
     }
     $removeFiles = @()
+#    $dstFolder = Join-Path $ENV:GITHUB_WORKSPACE ".github\workflows"
+#    $pathLength = "$ENV:GITHUB_WORKSPACE".Length
+#    'ci.yaml','cd.yaml','registercustomerenvironment.yaml','ReleaseWorkflowTemplate.yaml.txt','ReleaseTo*-*-*-*-*-*-*.yaml' | ForEach-Object {
+#        $removeFiles += @(Get-Item (Join-Path $dstFolder $_) -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Substring($pathLength) })
+#    }
 
     if (-not $update) {
         if (($updateFiles) -or ($removeFiles)) {
@@ -192,18 +202,18 @@ try {
                     if (-not (Test-Path -path $path -PathType Container)) {
                         New-Item -Path $path -ItemType Directory | Out-Null
                     }
-                    Write-Host "Updating $($_.DstFile)"
+                    Write-Host "Update $($_.DstFile)"
                     Copy-Item -Path $_.SrcFile -Destination $_.DstFile -Force
                 }
-
                 $removeFiles | ForEach-Object {
-                    Write-Host "Removing $_"
+                    Write-Host "Remove $_"
                     Remove-Item (Join-Path (Get-Location).Path $_) -Force
                 }
 
                 invoke-git add *
 
-                $message = "Updated AL-Go System Files."
+                $message = "Updated AL-Go System Files"
+
                 invoke-git commit -m "'$message'"
 
                 if ($directcommit) {
@@ -216,10 +226,12 @@ try {
             }
             catch {
                 if ($directCommit) {
-                    throw "Failed to AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
+                    OutputError -message "Error updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows?"
+                    exit
                 }
                 else {
-                    throw "Failed to create a pull request for updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
+                    OutputError -message "Error creating PR for updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows?"
+                    exit
                 }
             }
         }
