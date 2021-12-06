@@ -232,7 +232,7 @@ try {
     TrackTrace -telemetryScope $telemetryScope
 }
 catch {
-    OutputError -message $_.Exception.Message
+    OutputError -message $_.Exception
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
