@@ -18,8 +18,25 @@ Param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 $telemetryScope = $null
+# Constants
+$repoSettingsFile = ".github\AL-Go-Settings.json"
+$headers = @{
+    "Accept" = "application/vnd.github.baptiste-preview+json"
+}
 
 # IMPORTANT: No code that can fail should be outside the try/catch
+function ReadSettings {
+    param (
+        $repoSettingsFile
+    )
+    $repoSettings = @{}
+
+    if (Test-Path $repoSettingsFile) {
+        $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
+    }
+
+    return $repoSettings
+}
 
 try {
     . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
@@ -29,8 +46,7 @@ try {
     $telemetryScope = CreateScope -eventId 'DO0071' -parentTelemetryScopeJson $parentTelemetryScopeJson
 
     if ($update -and -not $token) {
-        OutputError "You need to add a secret called GHTOKENWORKFLOW containing a personal access token with permissions to modify Workflows. This is done by opening https://github.com/settings/tokens, Generate a new token and check the workflow scope."
-        exit
+        throw "You need to add a secret called GHTOKENWORKFLOW containing a personal access token with permissions to modify Workflows. This is done by opening https://github.com/settings/tokens, Generate a new token and check the workflow scope."
     }
 
     # Support old calling convention
@@ -43,13 +59,7 @@ try {
         }
     }
 
-    $RepoSettingsFile = ".github\AL-Go-Settings.json"
-    if (Test-Path $RepoSettingsFile) {
-        $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
-    }
-    else {
-        $repoSettings = @{}
-    }
+    $repoSettings = ReadSettings -repoSettingsFile $repoSettingsFile
 
     $updateSettings = $true
     if ($repoSettings.ContainsKey("TemplateUrl") -and $repoSettings.TemplateUrl -eq $templateUrl) {
@@ -58,38 +68,32 @@ try {
 
     $templateBranch = $templateUrl.Split('@')[1]
     $templateUrl = $templateUrl.Split('@')[0]
-
     Set-Location $baseFolder
-    $headers = @{
-        "Accept" = "application/vnd.github.baptiste-preview+json"
-    }
+
     if ($templateUrl -ne "") {
         try {
-            $templateUrl = $templateUrl -replace "https://www.github.com/","https://api.github.com/repos/" -replace "https://github.com/","https://api.github.com/repos/"
+            $templateUrl = $templateUrl -replace "https://www.github.com/","$($ENV:GITHUB_API_URL)/repos/" 
             Write-Host "Api url $templateUrl"
             $templateInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $templateUrl | ConvertFrom-Json
         }
         catch {
-            OutputError -message "Error reading template repository. Error was $($_.Exception.Message)"
-            exit
+            throw $($_.Exception.Message)
         }
     }
     else {
         Write-Host "Api url $($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)"
         $repoInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)" | ConvertFrom-Json
+        
         if (!($repoInfo.PSObject.Properties.Name -eq "template_repository")) {
-            OutputWarning -message "This repository wasn't built on a template repository, or the template repository has been deleted. You have to specify a template repository URL manually."
-            exit
+            throw "This repository wasn't built on a template repository, or the template repository has been deleted. You have to specify a template repository URL manually."
         }
+
         $templateInfo = $repoInfo.template_repository
     }
 
     $templateUrl = $templateInfo.html_url
     Write-Host "Using template from $templateUrl@$templateBranch"
 
-    $headers = @{             
-        "Accept" = "application/vnd.github.baptiste-preview+json"
-    }
     $archiveUrl = $templateInfo.archive_url.Replace('{archive_format}','zipball').replace('{/ref}',"/$templateBranch")
     $tempName = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
     Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $archiveUrl -OutFile "$tempName.zip"
@@ -140,11 +144,6 @@ try {
         }
     }
     $removeFiles = @()
-#    $dstFolder = Join-Path $ENV:GITHUB_WORKSPACE ".github\workflows"
-#    $pathLength = "$ENV:GITHUB_WORKSPACE".Length
-#    'ci.yaml','cd.yaml','registercustomerenvironment.yaml','ReleaseWorkflowTemplate.yaml.txt','ReleaseTo*-*-*-*-*-*-*.yaml' | ForEach-Object {
-#        $removeFiles += @(Get-Item (Join-Path $dstFolder $_) -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Substring($pathLength) })
-#    }
 
     if (-not $update) {
         if (($updateFiles) -or ($removeFiles)) {
@@ -187,13 +186,7 @@ try {
 
                 invoke-git status
 
-                $RepoSettingsFile = ".github\AL-Go-Settings.json"
-                if (Test-Path $RepoSettingsFile) {
-                    $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
-                }
-                else {
-                    $repoSettings = @{}
-                }
+                $repoSettings = ReadSettings -repoSettingsFile $repoSettingsFile
                 $repoSettings.templateUrl = "$templateUrl@$templateBranch"
                 $repoSettings | ConvertTo-Json -Depth 99 | Set-Content $repoSettingsFile -Encoding UTF8
 
@@ -202,18 +195,18 @@ try {
                     if (-not (Test-Path -path $path -PathType Container)) {
                         New-Item -Path $path -ItemType Directory | Out-Null
                     }
-                    Write-Host "Update $($_.DstFile)"
+                    Write-Host "Updating $($_.DstFile)"
                     Copy-Item -Path $_.SrcFile -Destination $_.DstFile -Force
                 }
+
                 $removeFiles | ForEach-Object {
-                    Write-Host "Remove $_"
+                    Write-Host "Removing $_"
                     Remove-Item (Join-Path (Get-Location).Path $_) -Force
                 }
 
                 invoke-git add *
 
-                $message = "Updated AL-Go System Files"
-
+                $message = "Updated AL-Go System Files."
                 invoke-git commit -m "'$message'"
 
                 if ($directcommit) {
@@ -226,12 +219,10 @@ try {
             }
             catch {
                 if ($directCommit) {
-                    OutputError -message "Error updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows?"
-                    exit
+                    throw "Failed to update the AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
                 }
                 else {
-                    OutputError -message "Error creating PR for updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows?"
-                    exit
+                    throw "Failed to create a pull request for updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
                 }
             }
         }
