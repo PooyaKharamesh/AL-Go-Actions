@@ -57,16 +57,18 @@ try {
             $templateUrl += "@main"
         }
     }
-    Write-Host "this is a test $repoSettingsFile"
+
     $repoSettings = ReadSettings 
     $updateSettings = $true
     if ($repoSettings.ContainsKey("TemplateUrl") -and $repoSettings.TemplateUrl -eq $templateUrl) {
         $updateSettings = $false
     }
+    Write-Host "this is a test 1"
 
     $templateBranch = $templateUrl.Split('@')[1]
     $templateUrl = $templateUrl.Split('@')[0]
     Set-Location $baseFolder
+    Write-Host "this is a test 2"
 
     if ($templateUrl -ne "") {
         try {
@@ -88,6 +90,7 @@ try {
 
         $templateInfo = $repoInfo.template_repository
     }
+    Write-Host "this is a test 3"
 
     $templateUrl = $templateInfo.html_url
     Write-Host "Using template from $templateUrl@$templateBranch"
