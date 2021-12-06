@@ -18,24 +18,9 @@ Param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 $telemetryScope = $null
-# Constants
-$headers = @{
-    "Accept" = "application/vnd.github.baptiste-preview+json"
-}
+
 
 # IMPORTANT: No code that can fail should be outside the try/catch
-function ReadSettings {
-    param (
-        $repoSettingsFile = ".github\AL-Go-Settings.json"
-    )
-    $repoSettings = @{}
-    $repoSettingsFile
-    if (Test-Path $repoSettingsFile) {
-        $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
-    }
-
-    return $repoSettings
-}
 
 try {
     . (Join-Path -Path $PSScriptRoot -ChildPath "..\AL-Go-Helper.ps1" -Resolve)
@@ -58,43 +43,48 @@ try {
         }
     }
 
-    $repoSettings = ReadSettings 
+    $RepoSettingsFile = ".github\AL-Go-Settings.json"
+    if (Test-Path $RepoSettingsFile) {
+        $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
+    }
+    else {
+        $repoSettings = @{}
+    }
+
     $updateSettings = $true
     if ($repoSettings.ContainsKey("TemplateUrl") -and $repoSettings.TemplateUrl -eq $templateUrl) {
         $updateSettings = $false
     }
-    Write-Host "this is a test 1"
 
     $templateBranch = $templateUrl.Split('@')[1]
     $templateUrl = $templateUrl.Split('@')[0]
+
     Set-Location $baseFolder
-    Write-Host "this is a test 2"
+    $headers = @{
+        "Accept" = "application/vnd.github.baptiste-preview+json"
+    }
 
     if ($templateUrl -ne "") {
-        try {
-            $templateUrl = $templateUrl -replace "https://www.github.com/","$($ENV:GITHUB_API_URL)/repos/" 
-            Write-Host "Api url $templateUrl"
-            $templateInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $templateUrl | ConvertFrom-Json
-        }
-        catch {
-            throw $($_.Exception.Message)
-        }
+        $templateUrl = $templateUrl -replace "https://www.github.com/","$($ENV:GITHUB_API_URL)/repos/" 
+        Write-Host "Api url $templateUrl"
+        $templateInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $templateUrl | ConvertFrom-Json
     }
     else {
         Write-Host "Api url $($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)"
         $repoInfo = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)" | ConvertFrom-Json
-        
         if (!($repoInfo.PSObject.Properties.Name -eq "template_repository")) {
             throw "This repository wasn't built on a template repository, or the template repository has been deleted. You have to specify a template repository URL manually."
         }
 
         $templateInfo = $repoInfo.template_repository
     }
-    Write-Host "this is a test 3"
 
     $templateUrl = $templateInfo.html_url
     Write-Host "Using template from $templateUrl@$templateBranch"
 
+    $headers = @{             
+        "Accept" = "application/vnd.github.baptiste-preview+json"
+    }
     $archiveUrl = $templateInfo.archive_url.Replace('{archive_format}','zipball').replace('{/ref}',"/$templateBranch")
     $tempName = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
     Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $archiveUrl -OutFile "$tempName.zip"
@@ -187,7 +177,13 @@ try {
 
                 invoke-git status
 
-                $repoSettings = ReadSettings
+                $RepoSettingsFile = ".github\AL-Go-Settings.json"
+                if (Test-Path $RepoSettingsFile) {
+                    $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
+                }
+                else {
+                    $repoSettings = @{}
+                }
                 $repoSettings.templateUrl = "$templateUrl@$templateBranch"
                 $repoSettings | ConvertTo-Json -Depth 99 | Set-Content $repoSettingsFile -Encoding UTF8
 
@@ -220,7 +216,7 @@ try {
             }
             catch {
                 if ($directCommit) {
-                    throw "Failed to update the AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
+                    throw "Failed to AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
                 }
                 else {
                     throw "Failed to create a pull request for updating AL-Go System Files. The personal access token defined in the secret called GH_WORKFLOW_TOKEN might have expired or it doesn't have permission to update workflows."
@@ -235,7 +231,7 @@ try {
     TrackTrace -telemetryScope $telemetryScope
 }
 catch {
-    OutputError -message $_.Exception
+    OutputError -message $_.Exception.Message
     TrackException -telemetryScope $telemetryScope -errorRecord $_
 }
 finally {
