@@ -30,7 +30,7 @@ function ReadSettings {
         $repoSettingsFile
     )
     $repoSettings = @{}
-
+    $repoSettingsFile
     if (Test-Path $repoSettingsFile) {
         $repoSettings = Get-Content $repoSettingsFile -Encoding UTF8 | ConvertFrom-Json | ConvertTo-HashTable
     }
