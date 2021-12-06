@@ -19,7 +19,6 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version 2.0
 $telemetryScope = $null
 # Constants
-$repoSettingsFile = ".github\AL-Go-Settings.json"
 $headers = @{
     "Accept" = "application/vnd.github.baptiste-preview+json"
 }
@@ -27,7 +26,7 @@ $headers = @{
 # IMPORTANT: No code that can fail should be outside the try/catch
 function ReadSettings {
     param (
-        $repoSettingsFile
+        $repoSettingsFile = ".github\AL-Go-Settings.json"
     )
     $repoSettings = @{}
     $repoSettingsFile
@@ -58,9 +57,8 @@ try {
             $templateUrl += "@main"
         }
     }
-    Write-Host"this is a test $repoSettingsFile"
-    $repoSettings = ReadSettings -repoSettingsFile $repoSettingsFile
-
+    Write-Host "this is a test $repoSettingsFile"
+    $repoSettings = ReadSettings 
     $updateSettings = $true
     if ($repoSettings.ContainsKey("TemplateUrl") -and $repoSettings.TemplateUrl -eq $templateUrl) {
         $updateSettings = $false
@@ -186,7 +184,7 @@ try {
 
                 invoke-git status
 
-                $repoSettings = ReadSettings -repoSettingsFile $repoSettingsFile
+                $repoSettings = ReadSettings
                 $repoSettings.templateUrl = "$templateUrl@$templateBranch"
                 $repoSettings | ConvertTo-Json -Depth 99 | Set-Content $repoSettingsFile -Encoding UTF8
 
